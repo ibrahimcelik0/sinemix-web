@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Profilim - SineMix</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Profil Sayfasını Ortala */
+        .profil-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 90vh; /* Sayfa boyu kadar yer kaplasın */
+            flex-direction: column;
+        }
+
+        /* Kart Tasarımı */
+        .profil-karti {
+            background-color: #2c2c2c;
+            width: 400px;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center; /* Her şeyi ortala */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border-top: 5px solid #f5c518; /* Üste sarı çizgi */
+        }
+
+        .avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%; /* Resmi yuvarlak yapar */
+            border: 4px solid #f5c518; /* Resmin etrafına sarı çerçeve */
+            object-fit: cover;
+            margin-bottom: 20px;
+        }
+
+        h1 { margin: 10px 0 5px 0; font-size: 1.8rem; }
+        .kullanici-adi { color: #f5c518; font-weight: bold; margin-bottom: 20px; display: block; }
+        .bio { color: #ccc; line-height: 1.5; margin-bottom: 30px; }
+        .tarih { font-size: 0.8rem; color: #777; margin-top: 20px; }
+
+        /* Butonlar */
+        .btn {
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 5px;
+            display: inline-block;
+            transition: 0.3s;
+        }
+
+        .btn-duzenle { background-color: #444; color: white; }
+        .btn-duzenle:hover { background-color: #555; }
+        
+        .btn-ana { background-color: #f5c518; color: black; }
+        .btn-ana:hover { background-color: #d4a017; }
+
+    </style>
+</head>
+<body>
+
+    <div class="profil-container">
+        
+        <div class="profil-karti">
+            <img src="{{ kullanici.resim }}" alt="Profil Resmi" class="avatar">
+            
+            <h1>{{ kullanici.ad }}</h1>
+            <span class="kullanici-adi">{{ kullanici.kullanici_adi }}</span>
+            
+            <p class="bio">
+                {{ kullanici.bio }}
+            </p>
+
+            <div>
+                <a href="#" class="btn btn-duzenle">⚙️ Düzenle</a>
+                <a href="/" class="btn btn-ana">🏠 Ana Sayfa</a>
+            </div>
+
+            <p class="tarih">Üyelik Tarihi: {{ kullanici.uyelik_tarihi }}</p>
+        </div>
+
+    </div>
+
+</body>
+</html>
