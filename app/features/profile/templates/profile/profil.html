@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}{{ kullanici.ad }} - Profilim | SineMix{% endblock %}
+
+{% block body_class %}page-home{% endblock %}
+
+{% block navbar %}
+    {% include "navbar.html" %}
+{% endblock %}
+
+{% block content %}
+    <div class="platform-container">
+        <div class="profile-glass-dashboard">
+            <div class="profile-header-card">
+                <div class="profile-avatar-large">{{ kullanici.avatar_initial }}</div>
+
+                <div class="profile-identity-info">
+                    <div class="api-status-pill">
+                        <span class="status-dot live"></span>
+                        Kişisel Veri Dosyası: <code>{{ kullanici.watchlist_dosyasi }}</code>
+                    </div>
+                    <h1 class="profile-display-name">{{ kullanici.ad }}</h1>
+                    <div class="profile-meta-badges">
+                        <span class="profile-handle">{{ kullanici.kullanici_adi }}</span>
+                        <span class="profile-email-tag">✉️ {{ kullanici.email }}</span>
+                        <span class="profile-date-tag">📅 Katılım: {{ kullanici.uyelik_tarihi }}</span>
+                    </div>
+                    <p class="profile-bio-text">{{ kullanici.bio }}</p>
+                </div>
+
+                <div class="profile-quick-actions">
+                    <a href="{{ url_for('watchlist.watchlist_page') }}" class="btn-gold-action">📋 İzleme Listem</a>
+                    <a href="{{ url_for('recommendations.recommendations_page') }}" class="btn-secondary-action">✨ Önerilerim</a>
+                    <a href="{{ url_for('auth.logout') }}" class="btn-danger-action">🚪 Çıkış Yap</a>
+                </div>
+            </div>
+
+            <section class="profile-summary-card">
+                <div class="stats-counters">
+                    <div class="stat-item">
+                        <span class="stat-val">{{ stats.total }}</span>
+                        <span class="stat-lbl">İzlenen Yapım</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-val">{{ stats.movie_count }}</span>
+                        <span class="stat-lbl">Film</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-val">{{ stats.tv_count }}</span>
+                        <span class="stat-lbl">Dizi</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-val gold-text">⭐ {{ stats.avg_rating }}</span>
+                        <span class="stat-lbl">Ortalama Puanın</span>
+                    </div>
+                </div>
+
+                {% if profile.favorite_genres or profile.favorite_keywords %}
+                    <div class="taste-profile-bars">
+                        <div class="taste-group">
+                            <span class="taste-title">Favori Tür Ağırlıkların:</span>
+                            <div class="taste-chips">
+                                {% for g in profile.favorite_genres %}
+                                    <span class="taste-chip positive">{{ g.name }} <small>+{{ g.weight }}</small></span>
+                                {% endfor %}
+                                {% for g in profile.disliked_genres %}
+                                    <span class="taste-chip negative">{{ g.name }} <small>{{ g.weight }}</small></span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="taste-group">
+                            <span class="taste-title">Öne Çıkan Temaların:</span>
+                            <div class="taste-chips">
+                                {% for kw in profile.favorite_keywords[:8] %}
+                                    <span class="taste-chip keyword">#{{ kw.name }} <small>+{{ kw.weight }}</small></span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </section>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Gelişmiş Katalog Filtresi - SineMix{% endblock %}
+
+{% block body_class %}page-home page-filter{% endblock %}
+
+{% block navbar %}
+    {% include "navbar.html" %}
+{% endblock %}
+
+{% block content %}
+    <section class="advanced-filter-panel" id="advancedFilterPanel">
+        <div class="filter-page-header">
+            <div>
+                <h1 class="filter-page-title">Detaylı Film & Dizi Arama Motoru</h1>
+                <p class="filter-page-subtitle">Binlerce film ve dizi arasında isim, çoklu tür, yıl aralığı, yönetmen, oyuncu kadrosu ve IMDb puanına göre filtreleme yapın.</p>
+            </div>
+            <a href="{{ url_for('main.anasayfa') }}" class="back-home-pill">← Ana Sayfaya Dön</a>
+        </div>
+
+        <!-- 1. İçerik Tipi Sekmeleri (Tümü / Film / Dizi) -->
+        <div class="content-type-tabs" id="contentTypeTabs">
+            <button type="button" class="type-tab active" data-tip="ALL">🌐 Tümü (Film & Dizi)</button>
+            <button type="button" class="type-tab" data-tip="Film">🎬 Filmler</button>
+            <button type="button" class="type-tab" data-tip="Dizi">📺 Diziler</button>
+        </div>
+
+        <!-- 2. Metin Tabanlı Filtreler (İsim, Yönetmen, Oyuncu, Yıl Aralığı, Sıralama) -->
+        <div class="filter-grid-inputs">
+            <div class="filter-group">
+                <label for="filterTitleInput" class="filter-label">Film veya Dizi İsmi</label>
+                <input type="text" id="filterTitleInput" class="filter-text-input" placeholder="Örn: Interstellar, Matrix..." autocomplete="off">
+            </div>
+
+            <div class="filter-group">
+                <label for="filterDirectorInput" class="filter-label">Yönetmen</label>
+                <input type="text" id="filterDirectorInput" class="filter-text-input" placeholder="Yönetmen adı yazın (Örn: Nolan)..." autocomplete="off">
+            </div>
+
+            <div class="filter-group">
+                <label for="filterCastInput" class="filter-label">Oyuncu / Kadro</label>
+                <input type="text" id="filterCastInput" class="filter-text-input" placeholder="Oyuncu adı yazın (Örn: DiCaprio)..." autocomplete="off">
+            </div>
+
+            <div class="filter-group">
+                <span class="filter-label">Yapım Yılı Aralığı</span>
+                <div class="year-range-inputs">
+                    <input type="number" id="minYearInput" class="filter-text-input year-input" placeholder="Min (1920)" min="1900" max="2030">
+                    <span class="year-sep">—</span>
+                    <input type="number" id="maxYearInput" class="filter-text-input year-input" placeholder="Max (2026)" min="1900" max="2030">
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label for="sortSelect" class="filter-label">Sıralama Ölçütü</label>
+                <select id="sortSelect" class="filter-select">
+                    <option value="title-asc" selected>İsme Göre (A → Z)</option>
+                    <option value="title-desc">İsme Göre (Z → A)</option>
+                    <option value="rating-desc">IMDb Puanı (Yüksek → Düşük)</option>
+                    <option value="rating-asc">IMDb Puanı (Düşük → Yüksek)</option>
+                    <option value="year-desc">Yapım Yılı (Yeni → Eski)</option>
+                    <option value="year-asc">Yapım Yılı (Eski → Yeni)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 3. Evrensel Sinema & Dizi Türleri (Çoklu Seçim Çipleri) -->
+        <div class="genre-chips-section">
+            <div class="genre-header-row">
+                <span class="filter-label">Türler (Çoklu Seçim Yapabilirsiniz)</span>
+                <button type="button" id="clearGenresBtn" class="clear-genres-link" hidden>Tür Seçimini Temizle</button>
+            </div>
+            <div class="genre-chips-container" id="genreChipsContainer">
+                {% for tur in meta.turler %}
+                    <button type="button" class="genre-chip" data-genre="{{ tur }}">{{ tur }}</button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 4. Alt Satır: Minimum IMDb Puanı + Aksiyon Butonları -->
+        <div class="filter-bottom-row">
+            <div class="filter-group">
+                <span class="filter-label">Minimum IMDb Puanı: <strong id="minRatingValueLabel" class="gold-text">Tümü</strong></span>
+                <div class="rating-pills" id="ratingFilterGroup">
+                    <button type="button" class="rating-pill active" data-min-rating="0">Tümü</button>
+                    <button type="button" class="rating-pill" data-min-rating="7.0">⭐ 7.0+</button>
+                    <button type="button" class="rating-pill" data-min-rating="8.0">⭐ 8.0+</button>
+                    <button type="button" class="rating-pill" data-min-rating="8.5">⭐ 8.5+</button>
+                    <button type="button" class="rating-pill" data-min-rating="9.0">⭐ 9.0+</button>
+                </div>
+            </div>
+
+            <div class="filter-status-box">
+                <span id="filterResultCount" class="result-badge">{{ filmler|length }} içerik bulundu</span>
+                <button type="button" id="resetFiltersBtn" class="reset-filters-btn" hidden>Sıfırla</button>
+                <button type="button" id="applyFiltersBtn" class="apply-filters-btn">🔍 Filtreli Ara</button>
+            </div>
+        </div>
+    </section>
+
+    <div class="film-container" id="filmContainer">
+        {% for film in filmler %}
+            <a href="{{ url_for('movies.film_detay', id=film.id) }}"
+               class="film-link"
+               data-title="{{ film.isim }}"
+               data-type="{{ film.tip }}"
+               data-rating="{{ film.puan }}"
+               data-year="{{ film.yil }}"
+               data-genre="{{ film.tur }}"
+               data-director="{{ film.yonetmen }}"
+               data-cast="{{ film.oyuncular }}"
+               data-index="{{ loop.index0 }}"
+               style="text-decoration: none; color: inherit;">
+                <div class="film-karti">
+                    <div class="poster-alani">
+                        <span class="tip-etiketi">{{ film.tip }}</span>
+                        <span class="yil-etiketi">{{ film.yil }}</span>
+                        <img src="{{ film.resim }}" alt="{{ film.isim }}" loading="lazy">
+                    </div>
+                    <div class="detaylar">
+                        <div class="kart-ust-bilgi">
+                            <span class="puan">⭐ {{ film.puan }}</span>
+                            <span class="tur-etiketi">{{ film.tur }}</span>
+                        </div>
+                        <h3>{{ film.isim }}</h3>
+                        <span class="yonetmen-bilgisi">🎬 {{ film.yonetmen }}</span>
+                        <p>{{ film.konu }}</p>
+                    </div>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+
+    <!-- 5000+ İçerik İçin Sayfalama (Pagination) -->
+    <div id="catalogPagination" class="catalog-pagination" hidden></div>
+
+    <div id="emptyFilterState" class="empty-filter-state" hidden>
+        <div class="empty-icon">🎬</div>
+        <h3>Aradığınız Kriterlere Uygun İçerik Bulunamadı</h3>
+        <p>Seçtiğiniz isim, tür, yıl aralığı, yönetmen veya oyuncu filtrelerini genişleterek tekrar deneyebilirsiniz.</p>
+        <button type="button" id="emptyResetBtn" class="empty-reset-btn">Tüm Filtreleri Temizle</button>
+    </div>
+{% endblock %}

@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}SineMix - Sana Özel Öneriler{% endblock %}
+
+{% block body_class %}page-home{% endblock %}
+
+{% block navbar %}
+    {% include "navbar.html" %}
+{% endblock %}
+
+{% block content %}
+    <div class="platform-container">
+        <header class="section-hero">
+            <div class="hero-left">
+                <div class="api-status-pill">
+                    <span class="status-dot {{ 'live' if current_user else 'local' }}"></span>
+                    {% if current_user %}
+                        SineMix Kalıcı Öneri Motoru • Hesap: @{{ current_user.username }}
+                    {% else %}
+                        Misafir / Geçici Demo Modu (Bellek İçi • F5'te Sıfırlanır)
+                    {% endif %}
+                </div>
+                <h1 class="section-main-title">✨ Sana Özel Film & Dizi Önerileri</h1>
+                <p class="section-subtitle">İzleme listendeki puanlarına göre oluşturulan ilgi profilinle en yüksek uyumu yakalayan yapımlar <strong>% Eşleşme Skoru</strong> sırasıyla listelenir.</p>
+            </div>
+            <div class="hero-actions">
+                <button type="button" id="seedFromRecsBtn" class="btn-secondary-action">
+                    ⚡ Örnek Veri Yükle & Test Et
+                </button>
+                <button type="button" id="clearWatchlistBtn" class="btn-danger-action" {{ 'hidden' if watchlist_count == 0 else '' }}>
+                    🗑️ Listeyi Sıfırla
+                </button>
+                {% if current_user %}
+                    <a href="{{ url_for('watchlist.watchlist_page') }}" class="back-home-pill">
+                        📋 Listem ({{ watchlist_count }})
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('auth.login', next=request.path) }}" class="btn-gold-action">
+                        🔐 Kalıcı Tutmak İçin Oturum Aç
+                    </a>
+                {% endif %}
+            </div>
+        </header>
+
+        <!-- İlgi Profili Özeti (Dinamik / Sunucu) -->
+        <section class="profile-summary-card" id="recsProfileSummaryCard" {{ 'hidden' if watchlist_empty else '' }}>
+            <div class="taste-profile-bars" style="border-top: none; padding-top: 0; margin-top: 0;">
+                <div class="taste-group">
+                    <span class="taste-title">🎯 Favori Tür Ağırlıkların:</span>
+                    <div class="taste-chips" id="recsFavoriteGenresChips">
+                        {% for g in profile.favorite_genres %}
+                            <span class="taste-chip positive">{{ g.name }} <small>+{{ g.weight }}</small></span>
+                        {% endfor %}
+                        {% for g in profile.disliked_genres %}
+                            <span class="taste-chip negative">{{ g.name }} <small>{{ g.weight }}</small></span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="taste-group">
+                    <span class="taste-title">🔑 Eşleşen Anahtar Kelimeler:</span>
+                    <div class="taste-chips" id="recsFavoriteKeywordsChips">
+                        {% for kw in profile.favorite_keywords[:8] %}
+                            <span class="taste-chip keyword">#{{ kw.name }} <small>+{{ kw.weight }}</small></span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Film ve Dizi Ayrımı Segmented Control Bar -->
+        <div class="section-tabs-bar" id="recsSegmentedBar" {{ 'hidden' if not recommendations else '' }}>
+            <div class="segmented-control" id="mediaSegmentedControl" role="tablist" aria-label="Öneri Kategori Filtresi">
+                <button type="button" class="segment-btn active" data-media-filter="ALL" role="tab" aria-selected="true">
+                    <span>Tümü</span>
+                    <span class="segment-count" data-count-for="ALL">{{ recommendations|length }}</span>
+                </button>
+                <button type="button" class="segment-btn" data-media-filter="movie" role="tab" aria-selected="false">
+                    <span>🎬 Filmler</span>
+                    <span class="segment-count" data-count-for="movie">{{ recommendations|selectattr('media_type', 'equalto', 'movie')|list|length }}</span>
+                </button>
+                <button type="button" class="segment-btn" data-media-filter="tv" role="tab" aria-selected="false">
+                    <span>📺 Diziler</span>
+                    <span class="segment-count" data-count-for="tv">{{ recommendations|selectattr('media_type', 'equalto', 'tv')|list|length }}</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="catalog-grid" id="recommendationsGrid">
+            {% for item in recommendations %}
+                <article class="media-card recommendation-card"
+                         data-tmdb-id="{{ item.tmdb_id }}"
+                         data-media-type="{{ item.media_type }}"
+                         data-title="{{ item.title }}"
+                         data-year="{{ item.release_year }}"
+                         data-poster="{{ item.poster_path }}"
+                         data-match-score="{{ item.match_score }}"
+                         data-why="{{ item.why_recommended }}"
+                         data-genres='{{ item.genres | tojson }}'
+                         data-matched-genres='{{ item.matched_genres | tojson }}'
+                         data-keywords='{{ item.keywords | tojson }}'
+                         data-matched-keywords='{{ item.matched_keywords | tojson }}'
+                         data-seed-sources='{{ (item.seed_sources or []) | tojson }}'>
+                    <div class="media-poster-wrap">
+                        <span class="media-badge-type {{ item.media_type }}">
+                            {{ 'DİZİ' if item.media_type == 'tv' else 'FİLM' }}
+                        </span>
+
+                        <div class="match-score-badge {{ 'high-match' if item.match_score >= 85 else ('mid-match' if item.match_score >= 70 else '') }}">
+                            %{{ item.match_score }} Eşleşme
+                        </div>
+
+                        <div class="watched-ribbon" hidden>
+                            ✓ Listene Eklendi: <strong class="user-rating-val"></strong>/10
+                        </div>
+
+                        <a href="{{ url_for('catalog.detail', media_type=item.media_type, tmdb_id=item.tmdb_id) }}" class="poster-link">
+                            <img src="{{ item.poster_path }}" alt="{{ item.title }}" loading="lazy">
+                        </a>
+                    </div>
+
+                    <div class="media-card-body">
+                        <div class="media-meta-row">
+                            <span class="tmdb-score">⭐ {{ item.vote_average }} <small>({{ item.release_year }})</small></span>
+                            <div class="genre-tags">
+                                {% for g in item.genres[:3] %}
+                                    <span class="genre-tag {{ 'matched' if g in item.matched_genres else '' }}">{{ g }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <h3 class="media-title">
+                            <a href="{{ url_for('catalog.detail', media_type=item.media_type, tmdb_id=item.tmdb_id) }}">{{ item.title }}</a>
+                        </h3>
+
+                        <p class="media-overview">{{ item.overview }}</p>
+
+                        <button type="button" class="why-modal-trigger-btn" aria-haspopup="dialog">
+                            <span class="sparkle-icon">✨</span>
+                            <span>Neden Önerildi?</span>
+                            <span class="why-score-pill">%{{ item.match_score }}</span>
+                        </button>
+
+                        <div class="quick-rate-box">
+                            <div class="quick-rate-header">
+                                <span class="rate-label">İzledin mi? Puan Ver & Listeye Ekle:</span>
+                            </div>
+                            <div class="rating-number-bar">
+                                {% for r in range(1, 11) %}
+                                    <button type="button"
+                                            class="rate-num-btn {{ 'low-rate' if r < 5 else ('high-rate' if r >= 8 else '') }}"
+                                            data-rating="{{ r }}">
+                                        {{ r }}
+                                    </button>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+
+        <div id="tabEmptyState" class="empty-filter-state" hidden>
+            <div class="empty-icon">🎬</div>
+            <h3>Bu Kategoride Öneri Bulunamadı</h3>
+            <p>Diğer sekmeye geçiş yaparak önerileri görüntüleyebilirsiniz.</p>
+        </div>
+
+        <div id="recsEmptyStateBox" class="empty-filter-state" {{ '' if not recommendations else 'hidden' }}>
+            <div class="empty-icon">✨</div>
+            <h3>Henüz Puanlanmış Yapım Bulunmuyor</h3>
+            <p>
+                {% if current_user %}
+                    Öneri algoritmasını çalıştırmak için örnek veri yükleyebilir veya Keşfet sayfasından yapımlara puan verebilirsiniz.
+                {% else %}
+                    <strong>Misafir Modundasınız:</strong> Sayfa her açıldığında veya yenilendiğinde (<kbd>F5</kbd>) liste sıfırdan (boş) başlar. Algoritmayı geçici olarak test etmek için <strong>"⚡ Örnek İzleme Listesi Yükle"</strong> butonuna tıklayabilir veya kalıcı liste için <strong>Oturum Açabilirsiniz</strong>.
+                {% endif %}
+            </p>
+            <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                <button type="button" id="emptySeedRecsBtn" class="empty-reset-btn">⚡ Örnek İzleme Listesi Yükle (Test Et)</button>
+                <a href="{{ url_for('catalog.discover') }}" class="back-home-pill">🔍 Keşfet & Puan Ver</a>
+                {% if not current_user %}
+                    <a href="{{ url_for('auth.login', next=request.path) }}" class="btn-secondary-action">🔐 Oturum Aç</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Transparan (Glassmorphism) "Neden Önerildi?" Modal Penceresi -->
+    <div id="whyRecommendedModal" class="glass-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="whyModalTitle" hidden>
+        <div class="glass-modal-dialog">
+            <button type="button" id="closeWhyModalBtn" class="glass-modal-close" aria-label="Pencereyi Kapat">×</button>
+
+            <div class="glass-modal-header">
+                <img id="whyModalPoster" src="" alt="" class="glass-modal-poster">
+                <div class="glass-modal-title-wrap">
+                    <div class="glass-modal-badges">
+                        <span id="whyModalTypeBadge" class="media-badge-type">FİLM</span>
+                        <span id="whyModalScoreBadge" class="modal-match-pill">%95 Eşleşme Skoru</span>
+                    </div>
+                    <h2 id="whyModalTitle" class="glass-modal-title">Yapım Başlığı</h2>
+                    <p id="whyModalSummary" class="glass-modal-subtitle"></p>
+                </div>
+            </div>
+
+            <div class="glass-modal-body">
+                <div class="modal-reason-section" id="whyModalSourcesSection">
+                    <h4 class="modal-section-heading">🎬 Referans Alınan Yüksek Puanlı Yapımların</h4>
+                    <div id="whyModalSourcesList" class="modal-pill-list"></div>
+                </div>
+
+                <div class="modal-reason-section" id="whyModalGenresSection">
+                    <h4 class="modal-section-heading">🎭 İlgi Profilinle Eşleşen Türler</h4>
+                    <div id="whyModalGenresList" class="modal-pill-list"></div>
+                </div>
+
+                <div class="modal-reason-section" id="whyModalKeywordsSection">
+                    <h4 class="modal-section-heading">🔑 Ortak Anahtar Kelimeler & Temalar</h4>
+                    <div id="whyModalKeywordsList" class="modal-pill-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

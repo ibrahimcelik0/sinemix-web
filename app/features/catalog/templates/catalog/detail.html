@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}{{ item.title }} ({{ item.release_year }}) - SineMix Detay{% endblock %}
+
+{% block body_class %}page-home page-detail{% endblock %}
+
+{% block navbar %}
+    {% include "navbar.html" %}
+{% endblock %}
+
+{% block content %}
+    <div class="detail-page-wrapper"
+         id="detailPageRoot"
+         data-tmdb-id="{{ item.tmdb_id }}"
+         data-media-type="{{ item.media_type }}"
+         data-title="{{ item.title }}"
+         data-poster="{{ item.poster_path }}"
+         data-genres='{{ item.genres | tojson }}'
+         data-keywords='{{ item.keywords | tojson }}'
+         data-trailer-key="{{ item.trailer_key }}">
+
+        <!-- 1. Sinematik Hero Alanı (Backdrop & Degrade Geçiş) -->
+        <section class="detail-hero-section">
+            <div class="detail-backdrop-layer" style="background-image: url('{{ item.backdrop_path }}');"></div>
+            <div class="detail-backdrop-gradient"></div>
+
+            <div class="detail-hero-content">
+                <div class="detail-breadcrumb-row">
+                    <a href="{{ url_for('catalog.discover') }}" class="back-home-pill">← Keşfet'e Dön</a>
+                    <span class="detail-brand-tag">🎬 SineMix Sinema & Dizi Künyesi</span>
+                </div>
+
+                <div class="detail-hero-grid">
+                    <!-- Sol: Yüksek Çözünürlüklü Afiş -->
+                    <div class="detail-poster-column">
+                        <div class="detail-poster-card">
+                            <span class="media-badge-type {{ item.media_type }}">
+                                {{ 'DİZİ' if item.media_type == 'tv' else 'FİLM' }}
+                            </span>
+                            <div id="detailWatchedRibbon" class="watched-ribbon" {{ '' if item.in_watchlist else 'hidden' }}>
+                                ✓ Listende: <strong id="detailUserRatingVal">{{ item.user_rating }}</strong>/10
+                            </div>
+                            <img src="{{ item.poster_path }}" alt="{{ item.title }}">
+                        </div>
+                    </div>
+
+                    <!-- Sağ: Başlık, Slogan, Meta Bilgiler ve Glassmorphism Aksiyon Barı -->
+                    <div class="detail-info-column">
+                        <div class="detail-badges-row">
+                            <span class="detail-year-pill">📅 {{ item.release_year }}</span>
+                            <span class="detail-format-pill">⏱️ {{ item.format_summary }}</span>
+                            <span class="detail-tmdb-pill">⭐ {{ item.vote_average }} <small>/ 10 TMDB</small></span>
+                            {% if item.match_score > 0 %}
+                                <span class="detail-match-pill">%{{ item.match_score }} SineMix Eşleşmesi</span>
+                            {% endif %}
+                        </div>
+
+                        <h1 class="detail-main-title">{{ item.title }}</h1>
+                        {% if item.original_title and item.original_title != item.title %}
+                            <p class="detail-original-title">Orijinal Başlık: {{ item.original_title }}</p>
+                        {% endif %}
+
+                        {% if item.tagline %}
+                            <p class="detail-tagline">“{{ item.tagline }}”</p>
+                        {% endif %}
+
+                        <div class="detail-genre-row">
+                            {% for g in item.genres %}
+                                <span class="detail-genre-pill {{ 'matched' if g in item.matched_genres else '' }}">{{ g }}</span>
+                            {% endfor %}
+                        </div>
+
+                        <div class="detail-overview-box">
+                            <h3 class="detail-subheading">Özet</h3>
+                            <p class="detail-overview-text">{{ item.overview or 'Bu yapım için henüz Türkçe özet eklenmemiş.' }}</p>
+                        </div>
+
+                        <!-- 2. İnteraktif Aksiyon Barı (Glassmorphism) -->
+                        <div class="detail-glass-action-bar">
+                            <div class="action-bar-top">
+                                <div class="watchlist-control-group">
+                                    <div class="watchlist-status-header">
+                                        <span id="detailRatePromptLabel" class="action-group-label">
+                                            {% if item.in_watchlist %}
+                                                ✓ İzleme Listende (Mevcut Puanın: <strong class="gold-text" id="detailInlineRating">{{ item.user_rating }}/10</strong>) — Puanı Güncelle:
+                                            {% else %}
+                                                Puan Seç (1-10) ve İzleme Listene Ekle:
+                                            {% endif %}
+                                        </span>
+                                    </div>
+
+                                    <div class="detail-rating-controls">
+                                        <div class="detail-rating-numbers" id="detailRatingBar">
+                                            {% for r in range(1, 11) %}
+                                                <button type="button"
+                                                        class="detail-rate-btn {{ 'selected' if (item.user_rating == r or (not item.in_watchlist and r == 8)) else '' }} {{ 'low-rate' if r < 5 else ('high-rate' if r >= 8 else '') }}"
+                                                        data-rating="{{ r }}">
+                                                    {{ r }}
+                                                </button>
+                                            {% endfor %}
+                                        </div>
+
+                                        <button type="button" id="detailSaveWatchlistBtn" class="btn-gold-action">
+                                            {{ '💾 Puanı Güncelle' if item.in_watchlist else '➕ İzleme Listeme Ekle' }}
+                                        </button>
+
+                                        <button type="button"
+                                                id="detailRemoveWatchlistBtn"
+                                                class="btn-danger-action"
+                                                {{ '' if item.in_watchlist else 'hidden' }}>
+                                            🗑️ Listeden Çıkar
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="secondary-media-actions">
+                                    {% if item.trailer_key %}
+                                        <button type="button" id="openTrailerModalBtn" class="btn-trailer-play">
+                                            <span class="play-triangle">▶</span>
+                                            <span>Fragmanı İzle</span>
+                                        </button>
+                                    {% endif %}
+
+                                    <a href="{{ url_for('movies.yorum_yap', film_ismi=item.title) }}" class="btn-comment-glass">
+                                        💬 Yorum Yap
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- Algoritmanın Hesapladığı % Eşleşme Skoru & Neden Önerildi Analiz Kutusu -->
+                            <div class="detail-recommendation-analysis">
+                                <div class="analysis-badge-col">
+                                    <div class="analysis-score-circle {{ 'high' if item.match_score >= 80 else '' }}">
+                                        %{{ item.match_score }}
+                                    </div>
+                                    <span class="analysis-score-caption">Eşleşme Skoru</span>
+                                </div>
+                                <div class="analysis-text-col">
+                                    <div class="analysis-title">✨ SineMix Algoritma Analizi: Neden Önerildi?</div>
+                                    <p class="analysis-desc">{{ item.why_recommended }}</p>
+                                    {% if item.matched_keywords %}
+                                        <div class="analysis-kw-row">
+                                            {% for kw in item.matched_keywords %}
+                                                <span class="kw-pill matched">#{{ kw }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Alt İçerik Bölümü: Teknik Künye, Başroller, Benzer Yapımlar -->
+        <div class="platform-container detail-lower-sections">
+
+            <!-- 3. Teknik Künye Grid'i -->
+            <section class="detail-section-block">
+                <h2 class="detail-section-title">📋 Teknik Künye & Yapım Bilgileri</h2>
+                <div class="technical-specs-grid">
+                    <div class="spec-glass-card">
+                        <span class="spec-label">{{ 'Yaratıcı / Yönetmen' if item.media_type == 'tv' else 'Yönetmen' }}</span>
+                        <strong class="spec-value gold-text">🎬 {{ item.director_or_creator }}</strong>
+                    </div>
+
+                    <div class="spec-glass-card">
+                        <span class="spec-label">{{ 'Sezon & Bölüm' if item.media_type == 'tv' else 'Film Süresi' }}</span>
+                        <strong class="spec-value">⏱️ {{ item.format_summary }}</strong>
+                    </div>
+
+                    {% if item.media_type == 'movie' %}
+                        <div class="spec-glass-card">
+                            <span class="spec-label">Yapım Bütçesi</span>
+                            <strong class="spec-value">💵 {{ item.budget_formatted }}</strong>
+                        </div>
+
+                        <div class="spec-glass-card">
+                            <span class="spec-label">Gişe Hasılatı</span>
+                            <strong class="spec-value">🏆 {{ item.revenue_formatted }}</strong>
+                        </div>
+                    {% else %}
+                        <div class="spec-glass-card">
+                            <span class="spec-label">Toplam Sezon</span>
+                            <strong class="spec-value">📺 {{ item.number_of_seasons }} Sezon</strong>
+                        </div>
+
+                        <div class="spec-glass-card">
+                            <span class="spec-label">Toplam Bölüm</span>
+                            <strong class="spec-value">🎞️ {{ item.number_of_episodes }} Bölüm</strong>
+                        </div>
+                    {% endif %}
+
+                    <div class="spec-glass-card">
+                        <span class="spec-label">Yapım Durumu</span>
+                        <strong class="spec-value">📡 {{ item.status }}</strong>
+                    </div>
+
+                    <div class="spec-glass-card">
+                        <span class="spec-label">Orijinal Dil</span>
+                        <strong class="spec-value">🌐 {{ item.original_language }}</strong>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. Başroller (Cast Grid / Carousel) -->
+            {% if item.cast %}
+                <section class="detail-section-block">
+                    <h2 class="detail-section-title">🎭 Başrol Oyuncuları & Kadro</h2>
+                    <div class="cast-cards-grid">
+                        {% for actor in item.cast %}
+                            <div class="cast-glass-card">
+                                <div class="cast-avatar-wrap">
+                                    <img src="{{ actor.profile_path }}" alt="{{ actor.name }}" loading="lazy">
+                                </div>
+                                <div class="cast-info">
+                                    <strong class="cast-real-name">{{ actor.name }}</strong>
+                                    <span class="cast-char-name">{{ actor.character }}</span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endif %}
+
+            <!-- 5. Benzer Yapımlar -->
+            {% if item.similar_items %}
+                <section class="detail-section-block">
+                    <h2 class="detail-section-title">🔥 Benzer Film & Diziler</h2>
+                    <div class="similar-items-grid">
+                        {% for sim in item.similar_items %}
+                            <a href="{{ url_for('catalog.detail', media_type=sim.media_type, tmdb_id=sim.tmdb_id) }}" class="similar-glass-card">
+                                <div class="similar-poster-wrap">
+                                    <span class="media-badge-type {{ sim.media_type }}">
+                                        {{ 'DİZİ' if sim.media_type == 'tv' else 'FİLM' }}
+                                    </span>
+                                    <img src="{{ sim.poster_path }}" alt="{{ sim.title }}" loading="lazy">
+                                </div>
+                                <div class="similar-card-info">
+                                    <div class="similar-meta">
+                                        <span class="sim-rating">⭐ {{ sim.vote_average }}</span>
+                                        <span class="sim-year">{{ sim.release_year }}</span>
+                                    </div>
+                                    <h4 class="similar-title">{{ sim.title }}</h4>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Resmi Fragman (YouTube Embed) Glassmorphism Modal -->
+    {% if item.trailer_key %}
+        <div id="trailerModal" class="glass-modal-backdrop" role="dialog" aria-modal="true" aria-label="Resmi Fragman" hidden>
+            <div class="glass-modal-dialog trailer-modal-dialog">
+                <div class="trailer-modal-header">
+                    <h3 class="trailer-modal-title">🎬 {{ item.title }} — Resmi Fragman</h3>
+                    <button type="button" id="closeTrailerModalBtn" class="glass-modal-close" aria-label="Fragmanı Kapat">×</button>
+                </div>
+                <div class="trailer-video-responsive">
+                    <iframe id="trailerYoutubeIframe"
+                            src=""
+                            title="{{ item.title }} Resmi Fragman"
+                            frameborder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

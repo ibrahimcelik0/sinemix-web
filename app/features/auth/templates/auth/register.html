@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Kayıt Ol - SineMix{% endblock %}
+
+{% block body_class %}page-home page-auth{% endblock %}
+
+{% block navbar %}
+    {% include "navbar.html" %}
+{% endblock %}
+
+{% block content %}
+    <div class="auth-page-wrapper">
+        <div class="auth-glass-card">
+            <div class="auth-brand-header">
+                <span class="auth-logo-badge">🎬 SineMix</span>
+                <h1 class="auth-title">Yeni Hesap Oluştur</h1>
+                <p class="auth-subtitle">İzleme listeni ve verdiğin puanları kalıcı olarak kendi hesabında tutmak için ücretsiz kayıt ol.</p>
+            </div>
+
+            <form action="{{ url_for('auth.register') }}" method="POST" class="auth-form">
+                <input type="hidden" name="next" value="{{ next_url or '' }}">
+
+                <div class="auth-form-group">
+                    <label for="usernameInput">Kullanıcı Adı</label>
+                    <input type="text"
+                           id="usernameInput"
+                           name="username"
+                           value="{{ username or '' }}"
+                           placeholder="Örn: sinemasever"
+                           minlength="3"
+                           required
+                           autofocus>
+                </div>
+
+                <div class="auth-form-group">
+                    <label for="emailInput">E-posta Adresi</label>
+                    <input type="email"
+                           id="emailInput"
+                           name="email"
+                           value="{{ email or '' }}"
+                           placeholder="ornek@eposta.com"
+                           required>
+                </div>
+
+                <div class="auth-form-group">
+                    <label for="regPasswordInput">Şifre (En az 6 karakter)</label>
+                    <input type="password"
+                           id="regPasswordInput"
+                           name="password"
+                           placeholder="••••••••"
+                           minlength="6"
+                           required>
+                </div>
+
+                <div class="auth-form-group">
+                    <label for="regPasswordConfirmInput">Şifre Tekrar</label>
+                    <input type="password"
+                           id="regPasswordConfirmInput"
+                           name="password_confirm"
+                           placeholder="••••••••"
+                           minlength="6"
+                           required>
+                </div>
+
+                <button type="submit" class="auth-submit-btn">✨ Hesabımı Oluştur</button>
+            </form>
+
+            <p class="auth-switch-text">
+                Zaten bir hesabın var mı?
+                <a href="{{ url_for('auth.login', next=next_url) }}">Oturum Aç</a>
+            </p>
+        </div>
+    </div>
+{% endblock %}

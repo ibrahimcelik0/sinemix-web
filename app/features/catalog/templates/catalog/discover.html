@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}SineMix - Keşfet & İzleme Listesine Ekle{% endblock %}
+
+{% block body_class %}page-home{% endblock %}
+
+{% block navbar %}
+    {% include "navbar.html" %}
+{% endblock %}
+
+{% block content %}
+    <div class="platform-container">
+        <header class="section-hero">
+            <div class="hero-left">
+                <div class="api-status-pill">
+                    <span class="status-dot {{ 'live' if tmdb_live else 'local' }}"></span>
+                    {% if current_user %}
+                        Kalıcı Mod Aktif: <code>data/watchlists/{{ current_user.id }}.json</code>
+                    {% else %}
+                        Misafir / Geçici Demo Modu (Bellek İçi • F5'te Sıfırlanır)
+                    {% endif %}
+                </div>
+                <h1 class="section-main-title">SineMix Keşfet & Listene Ekle</h1>
+                <p class="section-subtitle">
+                    {% if current_user %}
+                        İzlediğin film ve dizilere <strong>1 ile 10 arasında puan vererek</strong> kalıcı izleme listene kaydet.
+                    {% else %}
+                        Algoritmayı test etmek için film ve dizilere geçici puan verebilir veya <strong>"⚡ Örnek Veri Yükle"</strong> butonunu kullanabilirsin. Sayfayı yenilediğinde (<kbd>F5</kbd>) geçici liste sıfırlanır.
+                    {% endif %}
+                </p>
+            </div>
+            <div class="hero-actions">
+                <button type="button" id="openBulkImportModalBtn" class="btn-bulk-import">
+                    📥 Toplu Liste Aktar
+                </button>
+                <button type="button" id="seedWatchlistBtn" class="btn-secondary-action">
+                    ⚡ Örnek Veri Yükle
+                </button>
+                <button type="button" id="clearWatchlistBtn" class="btn-danger-action" {{ 'hidden' if watchlist_count == 0 else '' }}>
+                    🗑️ Listeyi Sıfırla
+                </button>
+                {% if current_user %}
+                    <a href="{{ url_for('recommendations.recommendations_page') }}" class="btn-gold-action">
+                        ✨ Sana Özel Önerileri Gör
+                    </a>
+                {% else %}
+                    <button type="button" id="scrollToGuestRecsBtn" class="btn-gold-action">
+                        ✨ Anlık Önerileri Hesapla
+                    </button>
+                {% endif %}
+            </div>
+        </header>
+
+        <!-- Misafir veya Kullanıcı İçin Canlı Öneri & İlgi Profili Önizleme Bölümü (Geçici Demo Modunda F5 Olmadan Test İçin) -->
+        <section id="liveGuestRecommendationsSection" class="live-recommendations-panel" hidden>
+            <div class="live-recs-header">
+                <div>
+                    <h2 class="detail-section-title" style="margin-bottom: 4px;">✨ Sana Özel Öneriler (Algoritma Sonuçları)</h2>
+                    <p class="section-subtitle">Seçtiğin yapımların tür ve anahtar kelime ağırlıklarına göre anlık olarak hesaplandı.</p>
+                </div>
+                <div id="liveProfileChips" class="taste-chips"></div>
+            </div>
+            <div class="catalog-grid" id="liveRecommendationsGrid"></div>
+        </section>
+
+        <!-- Segmented Control Bar (Tümü / Filmler / Diziler) + Canlı Arama ve Filtre -->
+        <div class="discover-toolbar">
+            <div class="segmented-control" id="mediaSegmentedControl" role="tablist" aria-label="İçerik Tipi Filtresi">
+                <button type="button" class="segment-btn active" data-media-filter="ALL" role="tab" aria-selected="true">
+                    <span>Tümü</span>
+                    <span class="segment-count" data-count-for="ALL">{{ items|length }}</span>
+                </button>
+                <button type="button" class="segment-btn" data-media-filter="movie" role="tab" aria-selected="false">
+                    <span>🎬 Filmler</span>
+                    <span class="segment-count" data-count-for="movie">{{ items|selectattr('media_type', 'equalto', 'movie')|list|length }}</span>
+                </button>
+                <button type="button" class="segment-btn" data-media-filter="tv" role="tab" aria-selected="false">
+                    <span>📺 Diziler</span>
+                    <span class="segment-count" data-count-for="tv">{{ items|selectattr('media_type', 'equalto', 'tv')|list|length }}</span>
+                </button>
+            </div>
+
+            <div class="discover-search-wrap">
+                <input type="text" id="discoverSearchInput" placeholder="SineMix'te film, dizi, yönetmen veya tema ara (Örn: Interstellar, Dark, Nolan)..." autocomplete="off">
+            </div>
+
+            <div class="discover-filters-wrap">
+                <select id="discoverGenreSelect" class="filter-select">
+                    <option value="ALL">Tüm Türler</option>
+                    {% for g in genres %}
+                        <option value="{{ g }}">{{ g }}</option>
+                    {% endfor %}
+                </select>
+
+                <select id="discoverSortSelect" class="filter-select">
+                    <option value="popularity">Popülerliğe Göre</option>
+                    <option value="rating-desc">TMDB Puanı (Yüksek → Düşük)</option>
+                    <option value="year-desc">Yapım Yılı (Yeni → Eski)</option>
+                    <option value="title-asc">İsme Göre (A → Z)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Film & Dizi Kartları Grid -->
+        <div class="catalog-grid" id="discoverGrid">
+            {% for item in items %}
+                <article class="media-card {{ 'is-in-watchlist' if item.in_watchlist else '' }}"
+                         data-tmdb-id="{{ item.tmdb_id }}"
+                         data-media-type="{{ item.media_type }}"
+                         data-title="{{ item.title }}"
+                         data-poster="{{ item.poster_path }}"
+                         data-genres='{{ item.genres | tojson }}'
+                         data-keywords='{{ item.keywords | tojson }}'>
+                    <div class="media-poster-wrap">
+                        <span class="media-badge-type {{ item.media_type }}">
+                            {{ 'DİZİ' if item.media_type == 'tv' else 'FİLM' }}
+                        </span>
+                        <span class="media-badge-year">{{ item.release_year }}</span>
+
+                        <div class="watched-ribbon" {{ '' if item.in_watchlist else 'hidden' }}>
+                            ✓ Listende: <strong class="user-rating-val">{{ item.user_rating }}</strong>/10
+                        </div>
+
+                        <a href="{{ url_for('catalog.detail', media_type=item.media_type, tmdb_id=item.tmdb_id) }}" class="poster-link">
+                            <img src="{{ item.poster_path }}" alt="{{ item.title }}" loading="lazy">
+                        </a>
+                    </div>
+
+                    <div class="media-card-body">
+                        <div class="media-meta-row">
+                            <span class="tmdb-score">⭐ {{ item.vote_average }} <small>TMDB</small></span>
+                            <div class="genre-tags">
+                                {% for g in item.genres[:3] %}
+                                    <span class="genre-tag">{{ g }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <h3 class="media-title">
+                            <a href="{{ url_for('catalog.detail', media_type=item.media_type, tmdb_id=item.tmdb_id) }}">{{ item.title }}</a>
+                        </h3>
+
+                        <p class="media-overview">{{ item.overview }}</p>
+
+                        <!-- Tek Tıkla 1-10 Puan Vererek İzleme Listesine Ekleme Alanı -->
+                        <div class="quick-rate-box">
+                            <div class="quick-rate-header">
+                                <span class="rate-label">
+                                    {{ 'Puanını Güncelle (1-10):' if item.in_watchlist else 'Puan Ver & Listeye Ekle (1-10):' }}
+                                </span>
+                            </div>
+                            <div class="rating-number-bar">
+                                {% for r in range(1, 11) %}
+                                    <button type="button"
+                                            class="rate-num-btn {{ 'selected' if item.user_rating == r else '' }} {{ 'low-rate' if r < 5 else ('high-rate' if r >= 8 else '') }}"
+                                            data-rating="{{ r }}"
+                                            title="{{ r }}/10 Puan Ver">
+                                        {{ r }}
+                                    </button>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+
+        <!-- 434+ Yapım İçin Sayfalama / "Daha Fazla Göster" Kontrolü -->
+        <div id="watchlistPaginationBar" class="watchlist-load-more-bar" hidden>
+            <span id="watchlistShowingStatus" class="showing-status-pill">36 / {{ items|length }} yapım gösteriliyor</span>
+            <button type="button" id="watchlistLoadMoreBtn" class="btn-gold-action">
+                ⬇️ Daha Fazla Göster (+36 Yapım)
+            </button>
+        </div>
+
+        <div id="discoverEmptyState" class="empty-filter-state" hidden>
+            <div class="empty-icon">🎬</div>
+            <h3>Bu Kategoride Eşleşen Yapım Bulunamadı</h3>
+            <p>Farklı bir sekme (Tümü / Filmler / Diziler) veya arama terimi deneyebilirsiniz.</p>
+        </div>
+    </div>
+
+    <!-- Transparan (Glassmorphism) "Neden Önerildi?" Modal Penceresi -->
+    <div id="whyRecommendedModal" class="glass-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="whyModalTitle" hidden>
+        <div class="glass-modal-dialog">
+            <button type="button" id="closeWhyModalBtn" class="glass-modal-close" aria-label="Pencereyi Kapat">×</button>
+
+            <div class="glass-modal-header">
+                <img id="whyModalPoster" src="" alt="" class="glass-modal-poster">
+                <div class="glass-modal-title-wrap">
+                    <div class="glass-modal-badges">
+                        <span id="whyModalTypeBadge" class="media-badge-type">FİLM</span>
+                        <span id="whyModalScoreBadge" class="modal-match-pill">%95 Eşleşme Skoru</span>
+                    </div>
+                    <h2 id="whyModalTitle" class="glass-modal-title">Yapım Başlığı</h2>
+                    <p id="whyModalSummary" class="glass-modal-subtitle"></p>
+                </div>
+            </div>
+
+            <div class="glass-modal-body">
+                <div class="modal-reason-section" id="whyModalSourcesSection">
+                    <h4 class="modal-section-heading">🎬 Referans Alınan Yüksek Puanlı Yapımların</h4>
+                    <div id="whyModalSourcesList" class="modal-pill-list"></div>
+                </div>
+
+                <div class="modal-reason-section" id="whyModalGenresSection">
+                    <h4 class="modal-section-heading">🎭 İlgi Profilinle Eşleşen Türler</h4>
+                    <div id="whyModalGenresList" class="modal-pill-list"></div>
+                </div>
+
+                <div class="modal-reason-section" id="whyModalKeywordsSection">
+                    <h4 class="modal-section-heading">🔑 Ortak Anahtar Kelimeler & Temalar</h4>
+                    <div id="whyModalKeywordsList" class="modal-pill-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Glassmorphism Toplu Liste İçe Aktarma (Bulk Import) Modalı -->
+    <div id="bulkImportModal" class="glass-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="bulkModalTitle" hidden>
+        <div class="glass-modal-dialog bulk-import-dialog">
+            <button type="button" id="closeBulkImportModalBtn" class="glass-modal-close" aria-label="Pencereyi Kapat">×</button>
+
+            <div class="bulk-modal-header">
+                <span class="auth-logo-badge">📥 SineMix Toplu İçe Aktarma Motoru</span>
+                <h2 id="bulkModalTitle" class="glass-modal-title">Toplu Film & Dizi Listesi Aktar</h2>
+                <p class="glass-modal-subtitle">
+                    Elindeki 400-500+ film, dizi veya animasyon listesini alt alta yapıştır. Satır başındaki numaralar (<code>1- </code>, <code>24. </code> vb.) otomatik temizlenir ve mükerrer kayıtlar atlanır.
+                </p>
+            </div>
+
+            <div class="bulk-modal-body">
+                <div class="bulk-controls-grid">
+                    <div class="filter-group">
+                        <label for="bulkMediaTypeSelect" class="filter-label">Medya Türü Seçimi</label>
+                        <select id="bulkMediaTypeSelect" class="filter-select">
+                            <option value="auto" selected>🌐 Otomatik Algıla (Film & Dizi)</option>
+                            <option value="movie">🎬 Sadece Film</option>
+                            <option value="tv">📺 Sadece Dizi / Animasyon</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="bulkDefaultRatingSelect" class="filter-label">Varsayılan Başlangıç Puanı</label>
+                        <select id="bulkDefaultRatingSelect" class="filter-select">
+                            <option value="10">⭐ 10 / 10 (Başyapıt)</option>
+                            <option value="9">⭐ 9 / 10 (Harika)</option>
+                            <option value="8" selected>⭐ 8 / 10 (Çok İyi - Varsayılan)</option>
+                            <option value="7">⭐ 7 / 10 (İyi)</option>
+                            <option value="6">⭐ 6 / 10 (Orta)</option>
+                            <option value="5">⭐ 5 / 10 (Kararsız)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="bulk-textarea-group">
+                    <div class="bulk-textarea-header">
+                        <label for="bulkImportTextarea" class="filter-label">Film / Dizi Listesi (Her Satıra Bir Yapım)</label>
+                        <span id="bulkDetectedCountBadge" class="detected-lines-pill">0 başlık algılandı</span>
+                    </div>
+                    <textarea id="bulkImportTextarea"
+                              rows="10"
+                              placeholder="Örnek Liste:&#10;1- Interstellar&#10;2. Breaking Bad&#10;3- Dark&#10;24. Blade Runner 2049&#10;25- Attack on Titan&#10;26. The Godfather..."></textarea>
+                </div>
+
+                <div id="bulkProgressContainer" class="bulk-progress-box" hidden>
+                    <div class="bulk-progress-info">
+                        <span id="bulkProgressStatusText">0 / 0 işleniyor...</span>
+                        <strong id="bulkProgressPercentText">%0</strong>
+                    </div>
+                    <div class="bulk-progress-track">
+                        <div id="bulkProgressFill" class="bulk-progress-fill" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <div id="bulkSummaryReportBox" class="bulk-summary-report" hidden>
+                    <h4 class="bulk-report-title">✅ Toplu Aktarım Tamamlandı</h4>
+                    <div class="bulk-report-metrics">
+                        <span class="report-pill added"><strong id="reportAddedCount">0</strong> yapım eklendi</span>
+                        <span class="report-pill skipped"><strong id="reportSkippedCount">0</strong> yapım zaten mevcuttu</span>
+                        <span class="report-pill notfound"><strong id="reportNotFoundCount">0</strong> yapım bulunamadı</span>
+                    </div>
+                </div>
+
+                <div class="bulk-modal-actions">
+                    <button type="button" id="startBulkImportBtn" class="btn-gold-action">
+                        🚀 Toplu Aktarımı Başlat
+                    </button>
+                    <button type="button" id="finishBulkImportReloadBtn" class="btn-secondary-action" hidden>
+                        📋 Sonuçları Gör
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

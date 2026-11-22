@@ -1,0 +1,20 @@
+{
+  "name": "sinemix",
+  "version": "1.0.0",
+  "description": "SineMix - Modüler Flask Film ve Dizi Öneri Platformu",
+  "main": "run.py",
+  "private": true,
+  "scripts": {
+    "postinstall": "python -m pip install -r requirements.txt",
+    "dev": "python run.py",
+    "start": "python run.py",
+    "seed": "python seed_catalog.py"
+  },
+  "keywords": [
+    "sinemix",
+    "flask",
+    "movies",
+    "python"
+  ],
+  "license": "ISC"
+}

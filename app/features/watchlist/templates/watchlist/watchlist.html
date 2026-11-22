@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}SineMix - İzleme Listem ({{ stats.total }} Yapım){% endblock %}
+
+{% block body_class %}page-home{% endblock %}
+
+{% block navbar %}
+    {% include "navbar.html" %}
+{% endblock %}
+
+{% block content %}
+    <div class="platform-container">
+        <header class="section-hero">
+            <div class="hero-left">
+                <div class="api-status-pill">
+                    <span class="status-dot live"></span>
+                    SineMix Sınırsız Kapasite • <code>data/watchlists/{{ current_user.id if current_user else 'guest' }}.json</code>
+                </div>
+                <h1 class="section-main-title">📋 İzleme Listem & İlgi Profilim</h1>
+                <p class="section-subtitle">İzlediğin yüzlerce film, dizi ve animasyonu tek tek veya <strong>"📥 Toplu Liste Aktar"</strong> ile tek seferde ekleyebilirsin. Öneri motoru tüm listeni milisaniyeler içinde analiz eder.</p>
+            </div>
+
+            <!-- Sağ Üst: Toplu Liste Aktar, Örnek Veri Yükle, Listeyi Sıfırla & Öneriler -->
+            <div class="hero-actions">
+                <button type="button" id="openBulkImportModalBtn" class="btn-bulk-import">
+                    📥 Toplu Liste Aktar
+                </button>
+                <button type="button" id="seedWatchlistBtn" class="btn-secondary-action">
+                    ⚡ Örnek Veri Yükle
+                </button>
+                <button type="button" id="clearWatchlistBtn" class="btn-danger-action" {{ 'hidden' if not items else '' }}>
+                    🗑️ Listeyi Sıfırla
+                </button>
+                <a href="{{ url_for('recommendations.recommendations_page') }}" class="btn-gold-action">
+                    ✨ Önerileri Hesapla
+                </a>
+            </div>
+        </header>
+
+        <!-- İstatistik & Kullanıcı İlgi Profili Özeti -->
+        <section class="profile-summary-card" id="watchlistStatsSection">
+            <div class="stats-counters">
+                <div class="stat-item">
+                    <span class="stat-val" id="statTotalCount">{{ stats.total }}</span>
+                    <span class="stat-lbl">Toplam Yapım</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-val" id="statMovieCount">{{ stats.movie_count }}</span>
+                    <span class="stat-lbl">Film</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-val" id="statTvCount">{{ stats.tv_count }}</span>
+                    <span class="stat-lbl">Dizi / Animasyon</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-val gold-text" id="statAvgRating">⭐ {{ stats.avg_rating }}</span>
+                    <span class="stat-lbl">Ortalama Puanın</span>
+                </div>
+            </div>
+
+            {% if profile.favorite_genres or profile.favorite_keywords %}
+                <div class="taste-profile-bars">
+                    <div class="taste-group">
+                        <span class="taste-title">Pozitif Tür Ağırlıkların:</span>
+                        <div class="taste-chips">
+                            {% for g in profile.favorite_genres %}
+                                <span class="taste-chip positive">{{ g.name }} <small>+{{ g.weight }}</small></span>
+                            {% endfor %}
+                            {% for g in profile.disliked_genres %}
+                                <span class="taste-chip negative">{{ g.name }} <small>{{ g.weight }}</small></span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="taste-group">
+                        <span class="taste-title">Öne Çıkan Anahtar Kelimeler:</span>
+                        <div class="taste-chips">
+                            {% for kw in profile.favorite_keywords[:8] %}
+                                <span class="taste-chip keyword">#{{ kw.name }} <small>+{{ kw.weight }}</small></span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </section>
+
+        {% if items %}
+            <!-- Film & Dizi Ayrımı Segmented Control Bar + Liste İçi Hızlı Arama -->
+            <div class="section-tabs-bar">
+                <div class="segmented-control" id="mediaSegmentedControl" role="tablist" aria-label="İzleme Listesi Kategori Filtresi">
+                    <button type="button" class="segment-btn active" data-media-filter="ALL" role="tab" aria-selected="true">
+                        <span>Tümü</span>
+                        <span class="segment-count" data-count-for="ALL">{{ items|length }}</span>
+                    </button>
+                    <button type="button" class="segment-btn" data-media-filter="movie" role="tab" aria-selected="false">
+                        <span>🎬 Filmler</span>
+                        <span class="segment-count" data-count-for="movie">{{ items|selectattr('media_type', 'equalto', 'movie')|list|length }}</span>
+                    </button>
+                    <button type="button" class="segment-btn" data-media-filter="tv" role="tab" aria-selected="false">
+                        <span>📺 Diziler</span>
+                        <span class="segment-count" data-count-for="tv">{{ items|selectattr('media_type', 'equalto', 'tv')|list|length }}</span>
+                    </button>
+                </div>
+
+                <div class="watchlist-quick-filter">
+                    <input type="text" id="watchlistQuickSearchInput" class="filter-text-input" placeholder="Listenin içinde başlık ara..." autocomplete="off">
+                </div>
+            </div>
+
+            <div class="catalog-grid" id="watchlistGrid" data-page-size="36">
+                {% for item in items %}
+                    <article class="media-card is-in-watchlist"
+                             data-tmdb-id="{{ item.tmdb_id }}"
+                             data-media-type="{{ item.media_type }}"
+                             data-title="{{ item.title }}"
+                             data-poster="{{ item.poster_path }}"
+                             data-genres='{{ item.genres | tojson }}'
+                             data-keywords='{{ item.keywords | tojson }}'>
+                        <div class="media-poster-wrap">
+                            <span class="media-badge-type {{ item.media_type }}">
+                                {{ 'DİZİ' if item.media_type == 'tv' else 'FİLM' }}
+                            </span>
+
+                            <div class="watched-ribbon">
+                                Senin Puanın: <strong class="user-rating-val">{{ item.user_rating }}</strong>/10
+                            </div>
+
+                            <a href="{{ url_for('catalog.detail', media_type=item.media_type, tmdb_id=item.tmdb_id) }}" class="poster-link">
+                                <img src="{{ item.poster_path }}" alt="{{ item.title }}" loading="lazy">
+                            </a>
+                        </div>
+
+                        <div class="media-card-body">
+                            <div class="media-meta-row">
+                                <div class="genre-tags">
+                                    {% for g in item.genres %}
+                                        <span class="genre-tag">{{ g }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <h3 class="media-title">
+                                <a href="{{ url_for('catalog.detail', media_type=item.media_type, tmdb_id=item.tmdb_id) }}">{{ item.title }}</a>
+                            </h3>
+
+                            {% if item.keywords %}
+                                <div class="keyword-pills">
+                                    {% for kw in item.keywords[:4] %}
+                                        <span class="kw-pill">#{{ kw }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+
+                            <div class="quick-rate-box">
+                                <div class="quick-rate-header">
+                                    <span class="rate-label">Puanı Değiştir (1-10):</span>
+                                    <button type="button" class="remove-watchlist-btn" title="Listeden Çıkar">
+                                        🗑️ Çıkar
+                                    </button>
+                                </div>
+                                <div class="rating-number-bar">
+                                    {% for r in range(1, 11) %}
+                                        <button type="button"
+                                                class="rate-num-btn {{ 'selected' if item.user_rating == r else '' }} {{ 'low-rate' if r < 5 else ('high-rate' if r >= 8 else '') }}"
+                                                data-rating="{{ r }}">
+                                            {{ r }}
+                                        </button>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+
+            <!-- 400-500+ Kart İçin Sayfalama / "Daha Fazla Göster" Kontrolü -->
+            <div id="watchlistPaginationBar" class="watchlist-load-more-bar" hidden>
+                <span id="watchlistShowingStatus" class="showing-status-pill">36 / {{ items|length }} yapım gösteriliyor</span>
+                <button type="button" id="watchlistLoadMoreBtn" class="btn-gold-action">
+                    ⬇️ Daha Fazla Göster (+36 Yapım)
+                </button>
+            </div>
+
+            <div id="tabEmptyState" class="empty-filter-state" hidden>
+                <div class="empty-icon">🎬</div>
+                <h3>Bu Kategoride Eşleşen Yapım Yok</h3>
+                <p>Seçtiğiniz sekmede veya arama teriminde kayıtlı bir yapım bulunmuyor.</p>
+            </div>
+        {% else %}
+            <div class="empty-filter-state">
+                <div class="empty-icon">📋</div>
+                <h3>İzleme Listeniz Şu An Boş</h3>
+                <p>Yüzlerce film veya diziyi tek seferde eklemek için <strong>"📥 Toplu Liste Aktar"</strong> butonunu kullanabilir veya örnek veri yükleyebilirsiniz.</p>
+                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                    <button type="button" id="emptyOpenBulkImportBtn" class="btn-bulk-import">📥 Toplu Liste Aktar (500+ Yapım)</button>
+                    <button type="button" id="emptySeedWatchlistBtn" class="empty-reset-btn">⚡ Örnek İzleme Listesi Yükle</button>
+                    <a href="{{ url_for('catalog.discover') }}" class="back-home-pill">🔍 Keşfet & Ekle'ye Git</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Glassmorphism Toplu Liste İçe Aktarma (Bulk Import) Modalı -->
+    <div id="bulkImportModal" class="glass-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="bulkModalTitle" hidden>
+        <div class="glass-modal-dialog bulk-import-dialog">
+            <button type="button" id="closeBulkImportModalBtn" class="glass-modal-close" aria-label="Pencereyi Kapat">×</button>
+
+            <div class="bulk-modal-header">
+                <span class="auth-logo-badge">📥 SineMix Toplu İçe Aktarma Motoru</span>
+                <h2 id="bulkModalTitle" class="glass-modal-title">Toplu Film & Dizi Listesi Aktar</h2>
+                <p class="glass-modal-subtitle">
+                    Elindeki 400-500+ film, dizi veya animasyon listesini alt alta yapıştır. Satır başındaki numaralar (<code>1- </code>, <code>24. </code> vb.) otomatik temizlenir ve mükerrer kayıtlar atlanır.
+                </p>
+            </div>
+
+            <div class="bulk-modal-body">
+                <div class="bulk-controls-grid">
+                    <div class="filter-group">
+                        <label for="bulkMediaTypeSelect" class="filter-label">Medya Türü Seçimi</label>
+                        <select id="bulkMediaTypeSelect" class="filter-select">
+                            <option value="auto" selected>🌐 Otomatik Algıla (Film & Dizi)</option>
+                            <option value="movie">🎬 Sadece Film</option>
+                            <option value="tv">📺 Sadece Dizi / Animasyon</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="bulkDefaultRatingSelect" class="filter-label">Varsayılan Başlangıç Puanı</label>
+                        <select id="bulkDefaultRatingSelect" class="filter-select">
+                            <option value="10">⭐ 10 / 10 (Başyapıt)</option>
+                            <option value="9">⭐ 9 / 10 (Harika)</option>
+                            <option value="8" selected>⭐ 8 / 10 (Çok İyi - Varsayılan)</option>
+                            <option value="7">⭐ 7 / 10 (İyi)</option>
+                            <option value="6">⭐ 6 / 10 (Orta)</option>
+                            <option value="5">⭐ 5 / 10 (Kararsız)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="bulk-textarea-group">
+                    <div class="bulk-textarea-header">
+                        <label for="bulkImportTextarea" class="filter-label">Film / Dizi Listesi (Her Satıra Bir Yapım)</label>
+                        <span id="bulkDetectedCountBadge" class="detected-lines-pill">0 başlık algılandı</span>
+                    </div>
+                    <textarea id="bulkImportTextarea"
+                              rows="10"
+                              placeholder="Örnek Liste:&#10;1- Interstellar&#10;2. Breaking Bad&#10;3- Dark&#10;24. Blade Runner 2049&#10;25- Attack on Titan&#10;26. The Godfather..."></textarea>
+                </div>
+
+                <!-- Canlı İlerleme Çubuğu (Progress Bar) -->
+                <div id="bulkProgressContainer" class="bulk-progress-box" hidden>
+                    <div class="bulk-progress-info">
+                        <span id="bulkProgressStatusText">0 / 0 işleniyor...</span>
+                        <strong id="bulkProgressPercentText">%0</strong>
+                    </div>
+                    <div class="bulk-progress-track">
+                        <div id="bulkProgressFill" class="bulk-progress-fill" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <!-- İşlem Sonu Özet Raporu -->
+                <div id="bulkSummaryReportBox" class="bulk-summary-report" hidden>
+                    <h4 class="bulk-report-title">✅ Toplu Aktarım Tamamlandı</h4>
+                    <div class="bulk-report-metrics">
+                        <span class="report-pill added"><strong id="reportAddedCount">0</strong> yapım eklendi</span>
+                        <span class="report-pill skipped"><strong id="reportSkippedCount">0</strong> yapım zaten mevcuttu</span>
+                        <span class="report-pill notfound"><strong id="reportNotFoundCount">0</strong> yapım bulunamadı</span>
+                    </div>
+                </div>
+
+                <div class="bulk-modal-actions">
+                    <button type="button" id="startBulkImportBtn" class="btn-gold-action">
+                        🚀 Toplu Aktarımı Başlat
+                    </button>
+                    <button type="button" id="finishBulkImportReloadBtn" class="btn-secondary-action" hidden>
+                        📋 Listeyi Yenile ve Görüntüle
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

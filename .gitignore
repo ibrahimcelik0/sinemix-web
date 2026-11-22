@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.env
+
+# Node
+node_modules/
+npm-debug.log*
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+# SineMix Kullanıcı & Kişisel İzleme Verileri
+data/users.json
+data/watchlists/
+data/watchlist.json

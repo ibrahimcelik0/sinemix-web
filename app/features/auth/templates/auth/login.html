@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Oturum Aç - SineMix{% endblock %}
+
+{% block body_class %}page-home page-auth{% endblock %}
+
+{% block navbar %}
+    {% include "navbar.html" %}
+{% endblock %}
+
+{% block content %}
+    <div class="auth-page-wrapper">
+        <div class="auth-glass-card">
+            <div class="auth-brand-header">
+                <span class="auth-logo-badge">🎬 SineMix</span>
+                <h1 class="auth-title">Oturum Aç</h1>
+                <p class="auth-subtitle">Kişisel izleme listeni <code>data/watchlists/&lt;user_id&gt;.json</code> dosyasında kalıcı olarak saklamak ve sana özel önerilerini kaydetmek için giriş yap.</p>
+            </div>
+
+            <form action="{{ url_for('auth.login') }}" method="POST" class="auth-form">
+                <input type="hidden" name="next" value="{{ next_url or '' }}">
+
+                <div class="auth-form-group">
+                    <label for="identifierInput">Kullanıcı Adı veya E-posta</label>
+                    <input type="text"
+                           id="identifierInput"
+                           name="identifier"
+                           value="{{ identifier or '' }}"
+                           placeholder="Kullanıcı adınız veya e-posta adresiniz"
+                           required
+                           autofocus>
+                </div>
+
+                <div class="auth-form-group">
+                    <label for="passwordInput">Şifre</label>
+                    <input type="password"
+                           id="passwordInput"
+                           name="password"
+                           placeholder="••••••••"
+                           required>
+                </div>
+
+                <button type="submit" class="auth-submit-btn">🔐 Oturum Aç</button>
+            </form>
+
+            <p class="auth-switch-text">
+                Henüz SineMix hesabın yok mu?
+                <a href="{{ url_for('auth.register', next=next_url) }}">Hemen Kayıt Ol</a>
+            </p>
+        </div>
+    </div>
+{% endblock %}

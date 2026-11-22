@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}SineMix{% endblock %}
+
+{% block body_class %}page-home{% endblock %}
+
+{% block navbar %}
+    {% include "navbar.html" %}
+{% endblock %}
+
+{% block content %}
+    <div class="film-container" id="filmContainer">
+        {% for film in filmler %}
+            <a href="{{ url_for('movies.film_detay', id=film.id) }}"
+               class="film-link"
+               data-title="{{ film.isim }}"
+               data-rating="{{ film.puan }}"
+               data-index="{{ loop.index0 }}"
+               style="text-decoration: none; color: inherit;">
+                <div class="film-karti">
+                    <div class="poster-alani">
+                        <img src="{{ film.resim }}" alt="{{ film.isim }}" loading="lazy">
+                    </div>
+                    <div class="detaylar">
+                        <span class="puan">⭐ {{ film.puan }}</span>
+                        <h3>{{ film.isim }}</h3>
+                        <p>{{ film.konu }}</p>
+                    </div>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+
+    <div id="emptyFilterState" class="empty-filter-state" hidden>
+        <div class="empty-icon">🎬</div>
+        <h3>Eşleşen Film Bulunamadı</h3>
+        <p>Aradığınız başlığa uygun bir film bulunamadı.</p>
+        <button type="button" id="emptyResetBtn" class="empty-reset-btn">Tüm Filmleri Göster</button>
+    </div>
+{% endblock %}
