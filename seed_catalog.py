@@ -244,6 +244,75 @@ def _save_checkpoint(items: List[Dict[str, Any]]) -> None:
     os.replace(temp_path, CATALOG_JSON_PATH)
 
 
+def fetch_tv_seasons_via_tmdb(api_key: str, tmdb_id: int, fallback_still: str) -> Tuple[int, int, List[Dict[str, Any]]]:
+    """
+    TMDB `GET /tv/{tmdb_id}` ve her sezon için `GET /tv/{tmdb_id}/season/{season_number}`
+    uç noktalarından gerçek sezon (`season_number >= 1`) ve bölüm verilerini çeker.
+    """
+    tv_data = _tmdb_api_get(api_key, f"/tv/{tmdb_id}", {"language": "tr-TR"})
+    if not tv_data or not tv_data.get("id"):
+        return 0, 0, []
+
+    raw_seasons = tv_data.get("seasons") or []
+    valid_season_nums = sorted({
+        int(s.get("season_number") or 0)
+        for s in raw_seasons
+        if int(s.get("season_number") or 0) >= 1
+    })
+
+    seasons_list: List[Dict[str, Any]] = []
+    total_episodes = 0
+
+    for s_num in valid_season_nums:
+        s_tr = _tmdb_api_get(api_key, f"/tv/{tmdb_id}/season/{s_num}", {"language": "tr-TR"})
+        time.sleep(0.12)
+        if not s_tr:
+            continue
+
+        eps_tr = s_tr.get("episodes") or []
+        en_by_num: Dict[int, Dict[str, Any]] = {}
+        if any(not (e.get("name") or "").strip() or not (e.get("overview") or "").strip() for e in eps_tr):
+            s_en = _tmdb_api_get(api_key, f"/tv/{tmdb_id}/season/{s_num}", {"language": "en-US"})
+            time.sleep(0.12)
+            if s_en and s_en.get("episodes"):
+                en_by_num = {int(e.get("episode_number") or 0): e for e in s_en["episodes"]}
+
+        ep_objs: List[Dict[str, Any]] = []
+        for ep in eps_tr:
+            ep_num = int(ep.get("episode_number") or 0)
+            if ep_num < 1:
+                continue
+            en_ep = en_by_num.get(ep_num) or {}
+            ep_name = (ep.get("name") or "").strip()
+            if not ep_name or ep_name.lower().startswith("bölüm "):
+                ep_name = (en_ep.get("name") or ep_name or f"{ep_num}. Bölüm").strip()
+            ep_ov = (ep.get("overview") or "").strip() or (en_ep.get("overview") or "").strip()
+            still_raw = ep.get("still_path")
+            still_url = format_tmdb_poster_url(still_raw) if still_raw else fallback_still
+
+            ep_objs.append({
+                "season_number": s_num,
+                "episode_number": ep_num,
+                "name": ep_name,
+                "overview": ep_ov,
+                "air_date": ep.get("air_date") or s_tr.get("air_date") or "",
+                "runtime": int(ep.get("runtime") or 45),
+                "still_path": still_url,
+            })
+
+        if ep_objs:
+            total_episodes += len(ep_objs)
+            seasons_list.append({
+                "season_number": s_num,
+                "name": f"{s_num}. Sezon",
+                "episode_count": len(ep_objs),
+                "air_date": s_tr.get("air_date") or ep_objs[0]["air_date"],
+                "episodes": ep_objs,
+            })
+
+    return len(seasons_list), total_episodes, seasons_list
+
+
 def seed_catalog(force_repair: bool = True) -> List[Dict[str, Any]]:
     """
     434 yapımlık (`60 Dizi` + `11 Çizgi Film` + `363 Film`) SineMix kataloğunu
@@ -347,6 +416,26 @@ def seed_catalog(force_repair: bool = True) -> List[Dict[str, Any]]:
 
         record["genres"] = normalize_genre_objects(record.get("genres") or seed_item.get("genres"))
         record["added_at"] = record.get("added_at") or now_iso
+
+        # Diziler için sezon ve bölüm listesi önbellek kontrolü
+        if m_type == "tv":
+            if existing and existing.get("seasons"):
+                record["seasons"] = existing["seasons"]
+                record["number_of_seasons"] = int(existing.get("number_of_seasons") or len(existing["seasons"]))
+                record["number_of_episodes"] = int(
+                    existing.get("number_of_episodes")
+                    or sum(len(s.get("episodes") or []) for s in existing["seasons"])
+                )
+            elif has_live_api and not record.get("seasons"):
+                n_s, n_e, s_list = fetch_tv_seasons_via_tmdb(
+                    api_key,
+                    int(record["tmdb_id"]),
+                    record.get("backdrop_path") or record["poster_path"],
+                )
+                if s_list:
+                    record["seasons"] = s_list
+                    record["number_of_seasons"] = n_s
+                    record["number_of_episodes"] = n_e
 
         t_id = int(record["tmdb_id"])
         while (t_id, m_type) in seen_ids:

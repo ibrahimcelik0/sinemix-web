@@ -5,7 +5,9 @@ from app.features.auth.services import get_current_user
 from app.features.catalog.repository import ContentRequestRepository
 from app.features.catalog.services import (
     fetch_comprehensive_item_detail,
+    get_all_collections,
     get_available_genres,
+    get_collection_by_slug,
     is_tmdb_live_enabled,
     search_multi_catalog,
 )
@@ -127,3 +129,41 @@ def api_submit_content_request():
         "message": msg,
         "request": record,
     })
+@catalog_bp.route("/evrenler")
+def collections():
+    """Disney+ tarzı Sinema Evrenleri ve Stüdyo Koleksiyonları vitrini."""
+    grouped = get_all_collections()
+    watchlist_count = len(WatchlistRepository.get_all())
+    return render_template(
+        "catalog/collections.html",
+        universes=grouped["universes"],
+        studios=grouped["studios"],
+        watchlist_count=watchlist_count,
+        active_page="collections",
+    )
+
+
+@catalog_bp.route("/evrenler/<string:slug>")
+def collection_detail(slug: str):
+    """Seçilen evren/stüdyo sayfası: Neden Seçmelisin + İzleme Sırası + Yapımlar."""
+    collection = get_collection_by_slug(slug)
+    if not collection:
+        abort(404, description="Koleksiyon bulunamadı.")
+
+    watchlist_items = WatchlistRepository.get_all()
+    watched_ids = {str(w.get("tmdb_id")) for w in watchlist_items}
+    watchlist_count = len(watchlist_items)
+
+    total_count = collection["count"]
+    watched_in_col = sum(1 for item in collection["items"] if str(item.get("tmdb_id") or item.get("id")) in watched_ids)
+    progress_pct = int((watched_in_col / total_count) * 100) if total_count > 0 else 0
+
+    return render_template(
+        "catalog/collection_detail.html",
+        collection=collection,
+        watched_ids=watched_ids,
+        watched_in_col=watched_in_col,
+        progress_pct=progress_pct,
+        watchlist_count=watchlist_count,
+        active_page="collections",
+    )

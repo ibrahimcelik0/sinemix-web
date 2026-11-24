@@ -123,6 +123,90 @@ def _format_profile_url(profile_path: Optional[str], name: str = "") -> str:
     return "/static/img/no-avatar.svg"
 
 
+def _format_still_url(still_path: Optional[str], fallback_url: str = "/static/img/no-poster.svg") -> str:
+    if still_path:
+        clean = str(still_path).strip()
+        if clean and "ui-avatars.com" not in clean:
+            if clean.startswith("https://image.tmdb.org/t/p/"):
+                return clean
+            if clean.startswith("http://") or clean.startswith("https://"):
+                return clean
+            if clean.startswith("/static/"):
+                return clean
+            if not clean.startswith("/"):
+                clean = f"/{clean}"
+            return f"https://image.tmdb.org/t/p/w500{clean}"
+    return fallback_url
+
+
+def _fetch_tmdb_tv_seasons(
+    tmdb_id: int,
+    raw_seasons_meta: List[Dict[str, Any]],
+    fallback_still: str,
+) -> List[Dict[str, Any]]:
+    """
+    TMDB `GET /tv/{tmdb_id}/season/{season_number}` uç noktasından
+    `season_number >= 1` olan gerçek sezonların tüm bölümlerini çeker.
+    Türkçe bölüm adı veya özeti boşsa `en-US` fallback uygular.
+    """
+    seasons_result: List[Dict[str, Any]] = []
+    valid_season_nums = sorted({
+        int(s.get("season_number") or 0)
+        for s in (raw_seasons_meta or [])
+        if int(s.get("season_number") or 0) >= 1
+    })
+
+    for s_num in valid_season_nums:
+        s_tr = _tmdb_get(f"/tv/{tmdb_id}/season/{s_num}", {"language": "tr-TR"})
+        if not s_tr:
+            continue
+        raw_eps_tr = s_tr.get("episodes") or []
+        en_eps_by_num: Dict[int, Dict[str, Any]] = {}
+
+        # Herhangi bir bölümde Türkçe isim veya özet eksikse en-US sezon verisini çek
+        needs_en = any(
+            not (ep.get("name") or "").strip() or not (ep.get("overview") or "").strip()
+            for ep in raw_eps_tr
+        )
+        if needs_en:
+            s_en = _tmdb_get(f"/tv/{tmdb_id}/season/{s_num}", {"language": "en-US"})
+            if s_en and s_en.get("episodes"):
+                en_eps_by_num = {
+                    int(e.get("episode_number") or 0): e for e in s_en["episodes"]
+                }
+
+        episodes_list: List[Dict[str, Any]] = []
+        for ep in raw_eps_tr:
+            ep_num = int(ep.get("episode_number") or 0)
+            if ep_num < 1:
+                continue
+            en_ep = en_eps_by_num.get(ep_num) or {}
+            ep_name = (ep.get("name") or "").strip()
+            if not ep_name or ep_name.lower().startswith("bölüm "):
+                ep_name = (en_ep.get("name") or ep_name or f"{ep_num}. Bölüm").strip()
+            ep_overview = (ep.get("overview") or "").strip() or (en_ep.get("overview") or "").strip()
+            episodes_list.append({
+                "season_number": s_num,
+                "episode_number": ep_num,
+                "name": ep_name,
+                "overview": ep_overview,
+                "air_date": ep.get("air_date") or s_tr.get("air_date") or "",
+                "runtime": int(ep.get("runtime") or 45),
+                "still_path": _format_still_url(ep.get("still_path"), fallback_still),
+            })
+
+        if episodes_list:
+            seasons_result.append({
+                "season_number": s_num,
+                "name": f"{s_num}. Sezon",
+                "episode_count": len(episodes_list),
+                "air_date": s_tr.get("air_date") or episodes_list[0]["air_date"],
+                "episodes": episodes_list,
+            })
+
+    return seasons_result
+
+
 def format_currency(amount: Optional[int]) -> str:
     """Bütçe ve gişe hasılatını '$160.000.000' formatına dönüştürür; 0 ise 'Belirtilmemiş' döner."""
     if not amount or int(amount) <= 0:
@@ -179,8 +263,10 @@ def fetch_comprehensive_item_detail(tmdb_id: int, media_type: str = "movie") -> 
 
     item_detail: Optional[Dict[str, Any]] = None
 
-    # 1. Yalnızca detay sayfasında ek veriler (cast / trailer_key) eksikse ve Canlı TMDB API aktifse çekip catalog.json'a önbellekle
-    needs_live_enrichment = is_tmdb_live_enabled() and (not fb_item or not fb_item.get("cast"))
+    # 1. Akıllı Önbellek (Sıfır Tekrar İstek):
+    # Veriler `data/catalog.json` içinde zaten mevcutsa (diziler için `seasons` dahil) tekrar TMDB API isteği atma!
+    has_cached_seasons = bool(fb_item and (media_type != "tv" or fb_item.get("seasons")))
+    needs_live_enrichment = is_tmdb_live_enabled() and (not fb_item or not has_cached_seasons)
     if needs_live_enrichment:
         data = _tmdb_get(
             f"/{media_type}/{tmdb_id}",
@@ -199,11 +285,26 @@ def fetch_comprehensive_item_detail(tmdb_id: int, media_type: str = "movie") -> 
             raw_lang = (data.get("original_language") or "en").lower()
             lang_tr = LANGUAGE_NAME_MAP.get(raw_lang, raw_lang.upper())
 
-            # Süre & Format
+            poster_url = _format_poster_url(data.get("poster_path"))
+            backdrop_url = _format_backdrop_url(data.get("backdrop_path"), poster_url)
+
+            # Süre & Format + Diziler için Sezon/Bölüm Listesi (GET /tv/{id}/season/{season_number})
             runtime = data.get("runtime")
             runtime_formatted = format_runtime(runtime) if media_type == "movie" else ""
-            number_of_seasons = data.get("number_of_seasons") or 0
-            number_of_episodes = data.get("number_of_episodes") or 0
+            seasons_list: List[Dict[str, Any]] = []
+            if media_type == "tv":
+                seasons_list = (fb_item.get("seasons") if fb_item else None) or _fetch_tmdb_tv_seasons(
+                    tmdb_id=int(data["id"]),
+                    raw_seasons_meta=data.get("seasons") or [],
+                    fallback_still=backdrop_url or poster_url,
+                )
+
+            number_of_seasons = len(seasons_list) if seasons_list else int(data.get("number_of_seasons") or 0)
+            number_of_episodes = (
+                sum(len(s.get("episodes") or []) for s in seasons_list)
+                if seasons_list
+                else int(data.get("number_of_episodes") or 0)
+            )
             format_summary = (
                 runtime_formatted
                 if media_type == "movie"
@@ -297,6 +398,7 @@ def fetch_comprehensive_item_detail(tmdb_id: int, media_type: str = "movie") -> 
                 "runtime_formatted": runtime_formatted,
                 "number_of_seasons": number_of_seasons,
                 "number_of_episodes": number_of_episodes,
+                "seasons": seasons_list,
                 "format_summary": format_summary,
                 "budget_formatted": budget_formatted,
                 "revenue_formatted": revenue_formatted,
@@ -310,15 +412,19 @@ def fetch_comprehensive_item_detail(tmdb_id: int, media_type: str = "movie") -> 
             # Çekilen detayları data/catalog.json içine önbellekle
             CatalogRepository.upsert_catalog_item(item_detail)
 
-    # 2. Doğrudan `data/catalog.json` (CatalogRepository) Üzerinden Oku
+    # 2. Doğrudan `data/catalog.json` (CatalogRepository) Üzerinden Sıfır Gecikmeyle Oku
     if not item_detail and fb_item:
         media_type = fb_item["media_type"]
         raw_status = fb_item.get("status", "Released")
         raw_lang = fb_item.get("original_language", "en")
 
         runtime_formatted = fb_item.get("runtime_formatted") or (format_runtime(fb_item.get("runtime")) if media_type == "movie" else "")
-        seasons = int(fb_item.get("number_of_seasons") or 1)
-        episodes = int(fb_item.get("number_of_episodes") or 10)
+        seasons_list = list(fb_item.get("seasons") or [])
+        seasons = int(fb_item.get("number_of_seasons") or (len(seasons_list) if seasons_list else 1))
+        episodes = int(
+            fb_item.get("number_of_episodes")
+            or (sum(len(s.get("episodes") or []) for s in seasons_list) if seasons_list else 1)
+        )
         format_summary = (
             runtime_formatted
             if media_type == "movie"
@@ -382,6 +488,7 @@ def fetch_comprehensive_item_detail(tmdb_id: int, media_type: str = "movie") -> 
             "runtime_formatted": runtime_formatted,
             "number_of_seasons": seasons,
             "number_of_episodes": episodes,
+            "seasons": seasons_list,
             "format_summary": format_summary,
             "budget_formatted": format_currency(fb_item.get("budget")) if media_type == "movie" else "Belirtilmemiş",
             "revenue_formatted": format_currency(fb_item.get("revenue")) if media_type == "movie" else "Belirtilmemiş",
@@ -475,3 +582,209 @@ def search_multi_catalog(
 
 def get_available_genres() -> List[str]:
     return EVRENSEL_TURLER
+# ==============================================================================
+# DİSNEY+ TARZI SİNEMA EVRENLERİ & STÜDYO KOLEKSİYONLARI
+# ==============================================================================
+
+COLLECTIONS_METADATA = [
+    {
+        "slug": "marvel",
+        "title": "Marvel Evreni",
+        "group": "universe",
+        "icon": "🦸‍♂️",
+        "tagline": "Sonsuzluk Taşları'ndan Çoklu Evren'e uzanan dev süper kahraman destanı.",
+        "why_watch": "Bağımsız kahraman hikayelerinin yıllar içinde devasa bir ortak evrende birleşmesini, yüksek tempolu aksiyonu ve unutulmaz takım dinamiklerini deneyimlemek için seçmelisin.",
+        "watch_order_note": "Karakter gelişimlerini, Sonsuzluk Taşları'nın hikayesini ve Endgame gibi büyük kırılma anlarının duygusal karşılığını tam almak için kronolojik/çıkış sırasıyla izlenmelidir.",
+        "is_sequential": True,
+        "keywords": [
+            "iron man", "kaptan amerika", "captain america", "thor", "yenilmezler",
+            "avengers", "örümcek-adam", "spider-man", "doktor strange", "doctor strange",
+            "galaksinin koruyucuları", "guardians of the galaxy", "ant-man", "black panther",
+            "deadpool", "x-men", "wolverine", "venom", "daredevil", "loki",
+            "wandavision", "punisher", "moon knight", "hawkeye", "what if"
+        ],
+    },
+    {
+        "slug": "star-wars",
+        "title": "Star Wars Evreni",
+        "group": "universe",
+        "icon": "⚔️",
+        "tagline": "Uzak bir galakside Güç'ün aydınlık ve karanlık tarafının efsanevi savaşı.",
+        "why_watch": "Sinema tarihinin en ikonik mitolojisini, unutulmaz müziklerini ve galaktik politik entrikalarla örülü epik maceralarını yaşamak için bu evrene girmelisin.",
+        "watch_order_note": "Skywalker ailesinin yükselişi ile İmparatorluk dönemi arasındaki geçişleri ve The Mandalorian gibi yan dizilerdeki sürpriz bağlantıları kaçırmamak için hikaye sırası kritik önem taşır.",
+        "is_sequential": True,
+        "keywords": ["star wars", "rogue one", "han solo", "mandalorian", "obi-wan"],
+    },
+    {
+        "slug": "dc",
+        "title": "DC Evreni",
+        "group": "universe",
+        "icon": "🦇",
+        "tagline": "Gotham'ın karanlık sokaklarından Metropolis'in tanrısal kahramanlarına.",
+        "why_watch": "Daha karanlık, psikolojik derinliği yüksek ve ikonik kötü karakterleriyle öne çıkan gerçekçi süper kahraman hikayeleri arıyorsan DC evreni tam sana göre.",
+        "watch_order_note": "Kara Şövalye üçlemesi ve Joker gibi bağımsız başyapıtları kendi içinde sırayla, Adalet Birliği hattını ise Man of Steel'den başlayarak takip etmen önerilir.",
+        "is_sequential": True,
+        "keywords": [
+            "batman", "kara şövalye", "dark knight", "çelik adam", "man of steel",
+            "adalet birliği", "justice league", "joker", "wonder woman", "aquaman",
+            "shazam", "intihar timi", "suicide squad"
+        ],
+    },
+    {
+        "slug": "fantasy-worlds",
+        "title": "Orta Dünya & Büyücülük",
+        "group": "universe",
+        "icon": "🧙‍♂️",
+        "tagline": "Yüzüklerin Efendisi ve Harry Potter'ın büyüleyici fantastik dünyaları.",
+        "why_watch": "İnce ince işlenmiş evren kuralları, dostluk teması ve sinema tarihine damga vurmuş destansı yolculuklarla bambaşka dünyalara kaçmak için seçmelisin.",
+        "watch_order_note": "Karakterlerin ilk adımdan büyük savaşa evrilen büyüme yolculuğunu ve evren gizemlerini adım adım çözmek için seri sırasını bozmadan izlemek şarttır.",
+        "is_sequential": True,
+        "keywords": [
+            "yüzüklerin efendisi", "lord of the rings", "hobbit",
+            "harry potter", "fantastik canavarlar", "fantastic beasts"
+        ],
+    },
+    {
+        "slug": "twd",
+        "title": "The Walking Dead Evreni",
+        "group": "universe",
+        "icon": "🧟",
+        "tagline": "Kıyamet sonrası dünyada asıl tehlike ölüler değil, hayatta kalanlardır.",
+        "why_watch": "İnsan psikolojisinin sınırlarını zorlayan hayatta kalma mücadelesi, yüksek gerilim ve yıllarca süren derin karakter bağları için bu evreni seçmelisin.",
+        "watch_order_note": "Ana dizideki karakter ayrılıklarının ve Dead City, Daryl Dixon gibi yan dizilerdeki yeni yolculukların zaman çizelgesini kaçırmamak için sırayla izlenmelidir.",
+        "is_sequential": True,
+        "keywords": ["walking dead", "dead city", "daryl dixon", "ones who live"],
+    },
+    {
+        "slug": "pixar",
+        "title": "Pixar Animasyon",
+        "group": "studio",
+        "icon": "💡",
+        "tagline": "Her yaşa dokunan derin hikayeler ve görsel şölen.",
+        "why_watch": "Sadece çocuklara değil yetişkinlere de hayat, dostluk ve duygular üzerine derin alt metinler sunan, gözyaşartıcı ve kusursuz anlatımlar için seçmelisin.",
+        "watch_order_note": "Çoğu yapım bağımsız birer başyapıttır; Oyuncak Hikayesi ve Arabalar gibi serileri kendi içinde sırayla izlemek nostaljik bağları güçlendirir.",
+        "is_sequential": False,
+        "keywords": [
+            "arabalar", "cars", "oyuncak hikayesi", "toy story", "inanılmaz aile",
+            "incredibles", "kayıp balık", "nemo", "dory", "sevimli canavarlar",
+            "monsters", "ters yüz", "inside out", "coco", "soul", "ratatuy",
+            "ratatouille", "yukarı bak", "up", "vol-i", "wall-e", "luca",
+            "bir böceğin yaşamı", "iyi bir dinozor", "hadi gidelim"
+        ],
+    },
+    {
+        "slug": "walt-disney",
+        "title": "Walt Disney Animasyon",
+        "group": "studio",
+        "icon": "🏰",
+        "tagline": "Klasikleşmiş masallar, unutulmaz müzikler ve büyülü dünyalar.",
+        "why_watch": "Sıcak aile atmosferi, ikonik müzikal sahneler ve nesiller boyu eskimeyen zamansız animasyon klasikleri için Walt Disney seçkisini tercih etmelisin.",
+        "watch_order_note": "Her yapım kendi bağımsız masalını anlatır; Karlar Ülkesi, Moana ve Zootropolis gibi devam filmlerini sıralı izlemen yeterlidir.",
+        "is_sequential": False,
+        "keywords": [
+            "aslan kral", "lion king", "karlar ülkesi", "frozen", "moana",
+            "zootropolis", "zootopia", "rapunzel", "tangled", "güzel ve çirkin",
+            "beauty and the beast", "cesur", "brave", "6 süper kahraman",
+            "big hero 6", "christopher robin"
+        ],
+    },
+    {
+        "slug": "dreamworks-family",
+        "title": "DreamWorks & Aile",
+        "group": "studio",
+        "icon": "🐉",
+        "tagline": "Yüksek mizah, tempo ve unutulmaz animasyon serileri.",
+        "why_watch": "Kung Fu Panda ve Ejderhanı Nasıl Eğitirsin gibi hem güldüren hem de epik macera sunan yüksek enerjili animasyon serileri arıyorsan doğru yerdesin.",
+        "watch_order_note": "Karakterlerin usta-çırak ve dostluk gelişimlerini eksiksiz takip etmek için üçlemeleri çıkış sırasıyla izlemen tavsiye edilir.",
+        "is_sequential": False,
+        "keywords": [
+            "kung fu panda", "ejderhanı nasıl eğitirsin", "how to train your dragon",
+            "buz devri", "ice age", "çılgın hırsız", "despicable me",
+            "minyonlar", "minions", "küçük prens"
+        ],
+    },
+]
+
+
+COLLECTIONS = COLLECTIONS_METADATA
+
+
+class CollectionDict(dict):
+    """
+    Hem Python içinde `collection["items"]` erişimini hem de Jinja2 şablonlarında
+    `{% for item in collection.items %}` nokta notasyonunu destekleyen sözlük sınıfı.
+    """
+
+    @property
+    def items(self):  # type: ignore[override]
+        return self.get("items", [])
+
+
+def _keyword_matches_text(kw: str, combined_text: str, words_set: set[str]) -> bool:
+    kw_low = kw.lower().strip()
+    if len(kw_low) <= 3 and " " not in kw_low:
+        return kw_low in words_set
+    return kw_low in combined_text
+
+
+def _match_collection_items(all_items: list[dict], keywords: list[str], is_sequential: bool) -> list[dict]:
+    import re
+    matched = []
+    for item in all_items:
+        title = (item.get("title") or "").lower()
+        orig_title = (item.get("original_title") or "").lower()
+        tr_title = (item.get("tr_title") or "").lower()
+        combined = f"{title} {orig_title} {tr_title}"
+        words_set = set(re.findall(r"[a-z0-9ğüşıöç]+", combined))
+        if any(_keyword_matches_text(kw, combined, words_set) for kw in keywords):
+            matched.append(item)
+
+    if is_sequential:
+        matched.sort(
+            key=lambda x: (
+                int(x.get("release_year") or x.get("year") or 9999),
+                str(x.get("release_date") or "9999"),
+            )
+        )
+    else:
+        matched.sort(key=lambda x: float(x.get("popularity") or 0), reverse=True)
+    return matched
+
+
+def get_all_collections() -> dict:
+    """Tüm Sinema Evrenleri ve Stüdyo koleksiyonlarını yapım sayılarıyla döndürür."""
+    all_items = search_multi_catalog(query="", media_type="ALL", genre="ALL", sort_by="popularity")
+    universes = []
+    studios = []
+
+    for col in COLLECTIONS_METADATA:
+        items = _match_collection_items(all_items, col["keywords"], col["is_sequential"])
+        entry = CollectionDict({
+            **col,
+            "items": items,
+            "count": len(items),
+            "preview_posters": [i.get("poster_path") for i in items[:4] if i.get("poster_path")],
+        })
+        if col["group"] == "universe":
+            universes.append(entry)
+        else:
+            studios.append(entry)
+
+    return {"universes": universes, "studios": studios}
+
+
+def get_collection_by_slug(slug: str) -> dict | None:
+    """Belirli bir slug'a ait koleksiyon bilgisini ve içindeki yapımları döndürür."""
+    target = next((c for c in COLLECTIONS_METADATA if c["slug"] == slug), None)
+    if not target:
+        return None
+
+    all_items = search_multi_catalog(query="", media_type="ALL", genre="ALL", sort_by="popularity")
+    items = _match_collection_items(all_items, target["keywords"], target["is_sequential"])
+    return CollectionDict({
+        **target,
+        "items": items,
+        "count": len(items),
+        "preview_posters": [i.get("poster_path") for i in items[:4] if i.get("poster_path")],
+    })
+

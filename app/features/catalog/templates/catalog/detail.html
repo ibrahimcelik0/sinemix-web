@@ -14,7 +14,10 @@
          data-tmdb-id="{{ item.tmdb_id }}"
          data-media-type="{{ item.media_type }}"
          data-title="{{ item.title }}"
+         data-year="{{ item.release_year }}"
          data-poster="{{ item.poster_path }}"
+         data-in-watchlist="{{ 'true' if item.in_watchlist else 'false' }}"
+         data-user-rating="{{ item.user_rating or '' }}"
          data-genres='{{ item.genres | tojson }}'
          data-keywords='{{ item.keywords | tojson }}'
          data-trailer-key="{{ item.trailer_key }}">
@@ -74,16 +77,16 @@
                             <p class="detail-overview-text">{{ item.overview or 'Bu yapım için henüz Türkçe özet eklenmemiş.' }}</p>
                         </div>
 
-                        <!-- 2. İnteraktif Aksiyon Barı (Glassmorphism) -->
+                        <!-- 2. İnteraktif Aksiyon Barı (Glassmorphism - Tüm Yapımlarda Tek Tip Şablon) -->
                         <div class="detail-glass-action-bar">
                             <div class="action-bar-top">
                                 <div class="watchlist-control-group">
                                     <div class="watchlist-status-header">
                                         <span id="detailRatePromptLabel" class="action-group-label">
-                                            {% if item.in_watchlist %}
-                                                ✓ İzlendi (Puanın: <strong class="gold-text" id="detailInlineRating">{{ item.user_rating }}/10</strong>) — Puanı Güncelle:
+                                            {% if item.in_watchlist and item.user_rating %}
+                                                ✓ İzlendi — Verdiğin Puan: <strong class="gold-text" id="detailInlineRating">{{ item.user_rating }}/10</strong> (Değiştirmek için yeni puan seçip güncelle):
                                             {% else %}
-                                                Puan Seç (1-10) ve İzledim Olarak İşaretle:
+                                                1–10 Arası Puanını Seç ve "İzledim" Butonuna Tıkla:
                                             {% endif %}
                                         </span>
                                     </div>
@@ -92,15 +95,21 @@
                                         <div class="detail-rating-numbers" id="detailRatingBar">
                                             {% for r in range(1, 11) %}
                                                 <button type="button"
-                                                        class="detail-rate-btn {{ 'selected' if (item.user_rating == r or (not item.in_watchlist and r == 8)) else '' }} {{ 'low-rate' if r < 5 else ('high-rate' if r >= 8 else '') }}"
+                                                        class="detail-rate-btn {{ 'selected' if (item.in_watchlist and item.user_rating == r) else '' }}"
                                                         data-rating="{{ r }}">
                                                     {{ r }}
                                                 </button>
                                             {% endfor %}
                                         </div>
 
-                                        <button type="button" id="detailSaveWatchlistBtn" class="btn-gold-action">
-                                            {{ '✓ İzlendi (Güncelle)' if item.in_watchlist else '✓ İzledim' }}
+                                        <button type="button"
+                                                id="detailSaveWatchlistBtn"
+                                                class="btn-gold-action detail-watch-confirm-btn {{ 'is-watched-confirmed' if item.in_watchlist else '' }}">
+                                            {% if item.in_watchlist and item.user_rating %}
+                                                ✓ İzlendi ({{ item.user_rating }}/10)
+                                            {% else %}
+                                                🎬 İzledim
+                                            {% endif %}
                                         </button>
 
                                         <button type="button"
@@ -112,13 +121,12 @@
                                     </div>
                                 </div>
 
+                                <!-- Tüm Film ve Dizi Sayfalarında Sabit Standart Fragman & Yorum Butonları -->
                                 <div class="secondary-media-actions">
-                                    {% if item.trailer_key %}
-                                        <button type="button" id="openTrailerModalBtn" class="btn-trailer-play">
-                                            <span class="play-triangle">▶</span>
-                                            <span>Fragmanı İzle</span>
-                                        </button>
-                                    {% endif %}
+                                    <button type="button" id="openTrailerModalBtn" class="btn-trailer-play">
+                                        <span class="play-triangle">▶</span>
+                                        <span>Fragmanı İzle</span>
+                                    </button>
 
                                     <a href="{{ url_for('movies.yorum_yap', film_ismi=item.title) }}" class="btn-comment-glass">
                                         💬 Yorum Yap
@@ -152,7 +160,7 @@
             </div>
         </section>
 
-        <!-- Alt İçerik Bölümü: Teknik Künye, Başroller, Benzer Yapımlar -->
+        <!-- Alt İçerik Bölümü: Teknik Künye, Başroller, Benzer Yapımlar (Tüm Sayfalarda Aynı Standart Taslak) -->
         <div class="platform-container detail-lower-sections">
 
             <!-- 3. Teknik Künye Grid'i -->
@@ -203,11 +211,11 @@
                 </div>
             </section>
 
-            <!-- 4. Başroller (Cast Grid / Carousel) -->
-            {% if item.cast %}
-                <section class="detail-section-block">
-                    <h2 class="detail-section-title">🎭 Başrol Oyuncuları & Kadro</h2>
-                    <div class="cast-cards-grid">
+            <!-- 4. Başroller & Yapım Kadrosu (Her Detay Sayfasında Sabit Bölüm) -->
+            <section class="detail-section-block">
+                <h2 class="detail-section-title">🎭 Başrol Oyuncuları & Kadro</h2>
+                <div class="cast-cards-grid">
+                    {% if item.cast %}
                         {% for actor in item.cast %}
                             <div class="cast-glass-card">
                                 <div class="cast-avatar-wrap">
@@ -217,6 +225,110 @@
                                     <strong class="cast-real-name">{{ actor.name }}</strong>
                                     <span class="cast-char-name">{{ actor.character }}</span>
                                 </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="cast-glass-card">
+                            <div class="cast-avatar-wrap">
+                                <img src="/static/img/no-avatar.svg" alt="{{ item.director_or_creator }}" loading="lazy">
+                            </div>
+                            <div class="cast-info">
+                                <strong class="cast-real-name">{{ item.director_or_creator }}</strong>
+                                <span class="cast-char-name">{{ 'Dizinin Yaratıcısı / Yönetmen' if item.media_type == 'tv' else 'Film Yönetmeni' }}</span>
+                            </div>
+                        </div>
+                        <div class="cast-glass-card">
+                            <div class="cast-avatar-wrap">
+                                <img src="/static/img/no-avatar.svg" alt="{{ item.title }} Başrol Kadrosu" loading="lazy">
+                            </div>
+                            <div class="cast-info">
+                                <strong class="cast-real-name">{{ item.title }} Oyuncu Kadrosu</strong>
+                                <span class="cast-char-name">Başrol & Ana Karakterler ({{ item.release_year }})</span>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <!-- 4.B Yalnızca Diziler İçin: Sezon Seçici Sekmeler & Bölüm Listesi -->
+            {% if item.media_type == 'tv' and item.seasons %}
+                <section class="detail-section-block tv-seasons-section"
+                         id="tvSeasonsSection"
+                         data-tmdb-id="{{ item.tmdb_id }}"
+                         data-user-key="{{ current_user.username if current_user else '' }}">
+                    <div class="tv-seasons-header-row">
+                        <div>
+                            <h2 class="detail-section-title" style="margin-bottom: 4px;">
+                                📺 Sezonlar & Bölümler ({{ item.number_of_seasons }} Sezon • {{ item.number_of_episodes }} Bölüm)
+                            </h2>
+                            <p class="tv-seasons-subtitle">Sezon seçerek bölümleri inceleyebilir ve izlediğin bölümleri işaretleyebilirsin.</p>
+                        </div>
+
+                        <div class="tv-season-progress-box">
+                            <span class="season-progress-pill" id="activeSeasonProgressText">
+                                0 / {{ item.seasons[0].episode_count }} Bölüm İzlendi
+                            </span>
+                            <button type="button" id="toggleAllSeasonWatchedBtn" class="btn-season-mark-all">
+                                ✓ Tüm Sezonu İzledim
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Sezon Seçici Sekmeler (1. Sezon, 2. Sezon, ...) -->
+                    <div class="tv-season-tabs" id="tvSeasonTabs" role="tablist" aria-label="Sezon Seçici">
+                        {% for season in item.seasons %}
+                            <button type="button"
+                                    class="tv-season-tab-btn {{ 'active' if loop.first else '' }}"
+                                    data-season-num="{{ season.season_number }}"
+                                    role="tab"
+                                    aria-selected="{{ 'true' if loop.first else 'false' }}">
+                                <span>{{ season.name }}</span>
+                                <span class="season-ep-count-pill">{{ season.episode_count }} Bölüm</span>
+                            </button>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Seçilen Sezona Ait Bölümler Listesi -->
+                    <div class="tv-seasons-panels-wrap" id="tvSeasonsPanelsWrap">
+                        {% for season in item.seasons %}
+                            <div class="tv-season-panel"
+                                 data-season-panel="{{ season.season_number }}"
+                                 {{ '' if loop.first else 'hidden' }}>
+                                {% for ep in season.episodes %}
+                                    <article class="tv-episode-card"
+                                             data-season-num="{{ ep.season_number }}"
+                                             data-episode-num="{{ ep.episode_number }}"
+                                             data-ep-key="S{{ ep.season_number }}E{{ ep.episode_number }}">
+                                        <div class="ep-still-wrap">
+                                            <span class="ep-code-badge">S{{ ep.season_number }} • B{{ ep.episode_number }}</span>
+                                            <img src="{{ ep.still_path or item.backdrop_path or '/static/img/no-poster.svg' }}"
+                                                 alt="S{{ ep.season_number }} B{{ ep.episode_number }} - {{ ep.name }}"
+                                                 loading="lazy"
+                                                 onerror="this.onerror=null;this.src='/static/img/no-poster.svg';">
+                                        </div>
+
+                                        <div class="ep-info-body">
+                                            <div class="ep-title-row">
+                                                <h4 class="ep-title-text">{{ ep.episode_number }}. {{ ep.name }}</h4>
+                                                <div class="ep-meta-pills">
+                                                    {% if ep.air_date %}
+                                                        <span class="ep-meta-item">📅 {{ ep.air_date }}</span>
+                                                    {% endif %}
+                                                    <span class="ep-meta-item">⏱️ {{ ep.runtime or 45 }} dk</span>
+                                                </div>
+                                            </div>
+                                            <p class="ep-overview-text">{{ ep.overview }}</p>
+                                        </div>
+
+                                        <div class="ep-action-col">
+                                            <button type="button"
+                                                    class="ep-watch-toggle-btn"
+                                                    data-ep-key="S{{ ep.season_number }}E{{ ep.episode_number }}">
+                                                🎬 İzledim
+                                            </button>
+                                        </div>
+                                    </article>
+                                {% endfor %}
                             </div>
                         {% endfor %}
                     </div>
@@ -251,14 +363,14 @@
         </div>
     </div>
 
-    <!-- Resmi Fragman (YouTube Embed) Glassmorphism Modal -->
-    {% if item.trailer_key %}
-        <div id="trailerModal" class="glass-modal-backdrop" role="dialog" aria-modal="true" aria-label="Resmi Fragman" hidden>
-            <div class="glass-modal-dialog trailer-modal-dialog">
-                <div class="trailer-modal-header">
-                    <h3 class="trailer-modal-title">🎬 {{ item.title }} — Resmi Fragman</h3>
-                    <button type="button" id="closeTrailerModalBtn" class="glass-modal-close" aria-label="Fragmanı Kapat">×</button>
-                </div>
+    <!-- Resmi Fragman Glassmorphism Modal (Tüm Sayfalarda Sabit Standart) -->
+    <div id="trailerModal" class="glass-modal-backdrop" role="dialog" aria-modal="true" aria-label="Resmi Fragman" hidden>
+        <div class="glass-modal-dialog trailer-modal-dialog">
+            <div class="trailer-modal-header">
+                <h3 class="trailer-modal-title">🎬 {{ item.title }} ({{ item.release_year }}) — Resmi Fragman</h3>
+                <button type="button" id="closeTrailerModalBtn" class="glass-modal-close" aria-label="Fragmanı Kapat">×</button>
+            </div>
+            {% if item.trailer_key %}
                 <div class="trailer-video-responsive">
                     <iframe id="trailerYoutubeIframe"
                             src=""
@@ -267,7 +379,152 @@
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowfullscreen></iframe>
                 </div>
-            </div>
+            {% else %}
+                <div class="trailer-fallback-box">
+                    <div class="trailer-fallback-icon">🎬</div>
+                    <h4>{{ item.title }} ({{ item.release_year }}) Resmi Fragmanı</h4>
+                    <p>Bu yapımın fragmanını YouTube üzerinden yüksek kalitede izleyebilirsiniz.</p>
+                    <a href="https://www.youtube.com/results?search_query={{ (item.title ~ ' ' ~ item.release_year ~ ' Official Trailer') | urlencode }}"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="btn-trailer-play">
+                        <span class="play-triangle">▶</span>
+                        <span>YouTube'da Fragmanı Aç ↗</span>
+                    </a>
+                </div>
+            {% endif %}
         </div>
-    {% endif %}
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const tvSection = document.getElementById("tvSeasonsSection");
+    if (!tvSection) return;
+
+    const tmdbId = tvSection.dataset.tmdbId || "0";
+    const userKey = (tvSection.dataset.userKey || "").trim();
+    const storageKey = userKey ? `sinemix_tv_eps_${userKey}_${tmdbId}` : null;
+
+    let watchedEpisodes = new Set();
+    if (storageKey) {
+        try {
+            const raw = localStorage.getItem(storageKey);
+            if (raw) {
+                JSON.parse(raw).forEach((k) => watchedEpisodes.add(k));
+            }
+        } catch (_) {}
+    }
+
+    function persistWatchedEpisodes() {
+        if (storageKey) {
+            try {
+                localStorage.setItem(storageKey, JSON.stringify(Array.from(watchedEpisodes)));
+            } catch (_) {}
+        }
+    }
+
+    const tabsContainer = document.getElementById("tvSeasonTabs");
+    const panelsWrap = document.getElementById("tvSeasonsPanelsWrap");
+    const progressTextEl = document.getElementById("activeSeasonProgressText");
+    const toggleAllBtn = document.getElementById("toggleAllSeasonWatchedBtn");
+
+    let activeSeasonNum = tabsContainer?.querySelector(".tv-season-tab-btn.active")?.dataset.seasonNum || "1";
+
+    function updateSeasonUI() {
+        const activePanel = panelsWrap?.querySelector(`.tv-season-panel[data-season-panel="${activeSeasonNum}"]`);
+        if (!activePanel) return;
+
+        const epCards = Array.from(activePanel.querySelectorAll(".tv-episode-card"));
+        const totalInSeason = epCards.length;
+        let watchedInSeason = 0;
+
+        epCards.forEach((card) => {
+            const epKey = card.dataset.epKey;
+            const isWatched = watchedEpisodes.has(epKey);
+            if (isWatched) watchedInSeason += 1;
+
+            card.classList.toggle("is-ep-watched", isWatched);
+            const btn = card.querySelector(".ep-watch-toggle-btn");
+            if (btn) {
+                btn.classList.toggle("is-watched", isWatched);
+                btn.textContent = isWatched ? "✓ İzlendi" : "🎬 İzledim";
+            }
+        });
+
+        if (progressTextEl) {
+            progressTextEl.textContent = `${watchedInSeason} / ${totalInSeason} Bölüm İzlendi`;
+            progressTextEl.classList.toggle("all-done", totalInSeason > 0 && watchedInSeason === totalInSeason);
+        }
+
+        if (toggleAllBtn) {
+            const allDone = totalInSeason > 0 && watchedInSeason === totalInSeason;
+            toggleAllBtn.textContent = allDone ? "↺ Sezon İşaretini Kaldır" : "✓ Tüm Sezonu İzledim";
+            toggleAllBtn.classList.toggle("is-all-watched", allDone);
+        }
+    }
+
+    if (tabsContainer) {
+        tabsContainer.addEventListener("click", (e) => {
+            const tabBtn = e.target.closest(".tv-season-tab-btn");
+            if (!tabBtn) return;
+
+            activeSeasonNum = tabBtn.dataset.seasonNum || "1";
+            tabsContainer.querySelectorAll(".tv-season-tab-btn").forEach((b) => {
+                const isActive = b === tabBtn;
+                b.classList.toggle("active", isActive);
+                b.setAttribute("aria-selected", isActive ? "true" : "false");
+            });
+
+            panelsWrap?.querySelectorAll(".tv-season-panel").forEach((panel) => {
+                panel.hidden = panel.dataset.seasonPanel !== activeSeasonNum;
+            });
+
+            updateSeasonUI();
+        });
+    }
+
+    if (panelsWrap) {
+        panelsWrap.addEventListener("click", (e) => {
+            const btn = e.target.closest(".ep-watch-toggle-btn");
+            if (!btn) return;
+            const epKey = btn.dataset.epKey;
+            if (!epKey) return;
+
+            if (watchedEpisodes.has(epKey)) {
+                watchedEpisodes.delete(epKey);
+            } else {
+                watchedEpisodes.add(epKey);
+            }
+            persistWatchedEpisodes();
+            updateSeasonUI();
+        });
+    }
+
+    if (toggleAllBtn) {
+        toggleAllBtn.addEventListener("click", () => {
+            const activePanel = panelsWrap?.querySelector(`.tv-season-panel[data-season-panel="${activeSeasonNum}"]`);
+            if (!activePanel) return;
+
+            const epCards = Array.from(activePanel.querySelectorAll(".tv-episode-card"));
+            const keys = epCards.map((c) => c.dataset.epKey).filter(Boolean);
+            const allCurrentlyWatched = keys.length > 0 && keys.every((k) => watchedEpisodes.has(k));
+
+            keys.forEach((k) => {
+                if (allCurrentlyWatched) {
+                    watchedEpisodes.delete(k);
+                } else {
+                    watchedEpisodes.add(k);
+                }
+            });
+
+            persistWatchedEpisodes();
+            updateSeasonUI();
+        });
+    }
+
+    updateSeasonUI();
+});
+</script>
 {% endblock %}

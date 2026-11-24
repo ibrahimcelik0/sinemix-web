@@ -6,7 +6,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const toastEl = document.getElementById("toastNotification");
     const navWatchlistBadge = document.getElementById("navWatchlistBadge");
-    const guestTempCountBadge = document.getElementById("guestTempCountBadge");
     const searchClearBtn = document.getElementById("searchClearBtn");
     const clearWatchlistBtn = document.getElementById("clearWatchlistBtn");
 
@@ -27,9 +26,6 @@ document.addEventListener("DOMContentLoaded", () => {
     function updateCounters(newCount) {
         if (navWatchlistBadge && typeof newCount === "number") {
             navWatchlistBadge.textContent = String(newCount);
-        }
-        if (guestTempCountBadge && typeof newCount === "number") {
-            guestTempCountBadge.textContent = String(newCount);
         }
         if (clearWatchlistBtn && typeof newCount === "number") {
             clearWatchlistBtn.hidden = newCount === 0;
@@ -200,6 +196,12 @@ document.addEventListener("DOMContentLoaded", () => {
     // =========================================================================
     // 3. Misafir Modu Bellek İçi Öneri Hesaplama ve Kart Çizimi
     // =========================================================================
+    function syncGuestWatchlistSessionStorage() {
+        try {
+            sessionStorage.setItem("sinemix_guest_watchlist", JSON.stringify(guestWatchlist));
+        } catch (_) {}
+    }
+
     function upsertGuestWatchlistItem(itemObj) {
         const idx = guestWatchlist.findIndex(
             (x) => Number(x.tmdb_id) === Number(itemObj.tmdb_id) && x.media_type === itemObj.media_type
@@ -209,6 +211,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
             guestWatchlist.unshift(itemObj);
         }
+        syncGuestWatchlistSessionStorage();
         updateCounters(guestWatchlist.length);
     }
 
@@ -218,22 +221,40 @@ document.addEventListener("DOMContentLoaded", () => {
             guestWatchlist.map((i) => [`${i.media_type}_${i.tmdb_id}`, Number(i.user_rating)])
         );
 
-        document.querySelectorAll("#discoverGrid .media-card").forEach((card) => {
+        document.querySelectorAll(".media-card").forEach((card) => {
             const key = `${card.dataset.mediaType || "movie"}_${card.dataset.tmdbId}`;
             const rating = lookup.get(key);
             const ribbon = card.querySelector(".watched-ribbon");
             const ratingValEl = card.querySelector(".user-rating-val");
+            const rateLabel = card.querySelector(".rate-label");
+            const confirmBtn = card.querySelector(".card-watch-confirm-btn");
 
             if (rating) {
                 card.classList.add("is-in-watchlist");
+                card.dataset.confirmedRating = String(rating);
                 if (ribbon) ribbon.hidden = false;
                 if (ratingValEl) ratingValEl.textContent = String(rating);
+                if (rateLabel) {
+                    rateLabel.innerHTML = `✓ İzlendi (Puanın: <strong class="gold-text">${rating}/10</strong>)`;
+                }
+                if (confirmBtn) {
+                    confirmBtn.textContent = `✓ İzlendi (${rating}/10)`;
+                    confirmBtn.classList.add("is-watched-confirmed");
+                    confirmBtn.classList.remove("is-pending-confirm");
+                }
                 card.querySelectorAll(".rate-num-btn").forEach((b) => {
                     b.classList.toggle("selected", Number(b.dataset.rating) === rating);
                 });
             } else {
                 card.classList.remove("is-in-watchlist");
+                delete card.dataset.confirmedRating;
+                delete card.dataset.pendingRating;
                 if (ribbon) ribbon.hidden = true;
+                if (rateLabel) rateLabel.textContent = "Puan Seç (1-10):";
+                if (confirmBtn) {
+                    confirmBtn.textContent = "🎬 İzledim";
+                    confirmBtn.classList.remove("is-watched-confirmed", "is-pending-confirm");
+                }
                 card.querySelectorAll(".rate-num-btn").forEach((b) => b.classList.remove("selected"));
             }
         });
@@ -263,8 +284,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         let ratingBtnsHtml = "";
         for (let r = 1; r <= 10; r++) {
-            const toneCls = r < 5 ? "low-rate" : r >= 8 ? "high-rate" : "";
-            ratingBtnsHtml += `<button type="button" class="rate-num-btn ${toneCls}" data-rating="${r}" title="İzledim (${r}/10)">${r}</button>`;
+            ratingBtnsHtml += `<button type="button" class="rate-num-btn" data-rating="${r}" title="${r}/10 Puan Seç">${r}</button>`;
         }
 
         const badgeTone = item.match_score >= 85 ? "high-match" : item.match_score >= 70 ? "mid-match" : "";
@@ -301,7 +321,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 </button>
                 <div class="quick-rate-box">
                     <div class="quick-rate-header">
-                        <span class="rate-label">İzledim (Puanla):</span>
+                        <span class="rate-label">Puan Seç (1-10):</span>
+                        <button type="button" class="card-watch-confirm-btn">🎬 İzledim</button>
                     </div>
                     <div class="rating-number-bar">${ratingBtnsHtml}</div>
                 </div>
@@ -425,25 +446,57 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
             }
 
-            card.querySelectorAll(".rate-num-btn").forEach((btn) => {
-                btn.addEventListener("click", async () => {
-                    const rating = parseInt(btn.dataset.rating || "8", 10);
+            const confirmWatchBtn = card.querySelector(".card-watch-confirm-btn");
+            const rateLabel = card.querySelector(".rate-label");
+            const ratingBarEl = card.querySelector(".rating-number-bar");
+            const initialSelectedBtn = card.querySelector(".rate-num-btn.selected");
+            if (initialSelectedBtn && card.classList.contains("is-in-watchlist")) {
+                card.dataset.confirmedRating = initialSelectedBtn.dataset.rating || "";
+            }
 
-                    card.classList.add("is-in-watchlist");
-                    card.querySelectorAll(".rate-num-btn").forEach((b) => {
-                        b.classList.toggle("selected", b === btn);
+            async function submitCardWatchedRating(rating) {
+                card.classList.add("is-in-watchlist");
+                card.dataset.confirmedRating = String(rating);
+                delete card.dataset.pendingRating;
+
+                card.querySelectorAll(".rate-num-btn").forEach((b) => {
+                    b.classList.toggle("selected", parseInt(b.dataset.rating || "0", 10) === rating);
+                });
+
+                const ribbon = card.querySelector(".watched-ribbon");
+                const ratingValEl = card.querySelector(".user-rating-val");
+                if (ribbon) ribbon.hidden = false;
+                if (ratingValEl) ratingValEl.textContent = String(rating);
+
+                if (rateLabel) {
+                    rateLabel.innerHTML = `✓ İzlendi (Puanın: <strong class="gold-text">${rating}/10</strong>)`;
+                }
+                if (confirmWatchBtn) {
+                    confirmWatchBtn.textContent = `✓ İzlendi (${rating}/10)`;
+                    confirmWatchBtn.classList.add("is-watched-confirmed");
+                    confirmWatchBtn.classList.remove("is-pending-confirm");
+                }
+
+                if (!isAuthenticated) {
+                    upsertGuestWatchlistItem({
+                        tmdb_id: tmdbId,
+                        media_type: mediaType,
+                        title: title,
+                        poster_path: posterPath,
+                        user_rating: rating,
+                        genres: genres,
+                        keywords: keywords,
                     });
+                    showToast(`✓ "${title}" (${rating}/10) İzlendi olarak işaretlendi!`);
+                    await refreshGuestRecommendationsPreview(false);
+                    return;
+                }
 
-                    const ribbon = card.querySelector(".watched-ribbon");
-                    const ratingValEl = card.querySelector(".user-rating-val");
-                    if (ribbon) ribbon.hidden = false;
-                    if (ratingValEl) ratingValEl.textContent = String(rating);
-
-                    const rateLabel = card.querySelector(".rate-label");
-                    if (rateLabel) rateLabel.textContent = "✓ İzledim:";
-
-                    if (!isAuthenticated) {
-                        upsertGuestWatchlistItem({
+                try {
+                    const res = await fetch("/api/watchlist", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
                             tmdb_id: tmdbId,
                             media_type: mediaType,
                             title: title,
@@ -451,40 +504,63 @@ document.addEventListener("DOMContentLoaded", () => {
                             user_rating: rating,
                             genres: genres,
                             keywords: keywords,
-                        });
-                        showToast(`✓ "${title}" (${rating}/10) İzlendi olarak işaretlendi!`);
-                        await refreshGuestRecommendationsPreview(false);
-                        return;
+                        }),
+                    });
+
+                    if (!res.ok) return;
+                    const data = await res.json();
+
+                    if (data.stats) {
+                        updateCounters(data.stats.total);
                     }
 
-                    try {
-                        const res = await fetch("/api/watchlist", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                tmdb_id: tmdbId,
-                                media_type: mediaType,
-                                title: title,
-                                poster_path: posterPath,
-                                user_rating: rating,
-                                genres: genres,
-                                keywords: keywords,
-                            }),
-                        });
+                    showToast(`✓ "${title}" (${rating}/10) İzlendi olarak kaydedildi!`);
+                } catch (err) {
+                    console.error("Puan kaydetme hatası:", err);
+                }
+            }
 
-                        if (!res.ok) return;
-                        const data = await res.json();
+            // 1. Adım: Kullanıcı 1-10 arası puan seçer (henüz kaydetmez, İzledim butonunu hazırlar)
+            card.querySelectorAll(".rate-num-btn").forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    const chosen = parseInt(btn.dataset.rating || "0", 10);
+                    if (!chosen) return;
 
-                        if (data.stats) {
-                            updateCounters(data.stats.total);
-                        }
+                    card.dataset.pendingRating = String(chosen);
+                    card.querySelectorAll(".rate-num-btn").forEach((b) => {
+                        b.classList.toggle("selected", b === btn);
+                    });
 
-                        showToast(`✓ "${title}" (${rating}/10) İzlendi olarak kaydedildi!`);
-                    } catch (err) {
-                        console.error("Puan kaydetme hatası:", err);
+                    if (rateLabel) {
+                        rateLabel.innerHTML = `Seçilen Puan: <strong class="gold-text">${chosen}/10</strong>`;
+                    }
+                    if (confirmWatchBtn) {
+                        confirmWatchBtn.textContent = `🎬 İzledim (${chosen}/10)`;
+                        confirmWatchBtn.classList.add("is-pending-confirm");
+                        confirmWatchBtn.classList.remove("is-watched-confirmed");
                     }
                 });
             });
+
+            // 2. Adım: Kullanıcı "İzledim" butonuna tıkladığında puan kaydedilir ve "✓ İzlendi (X/10)" olur
+            if (confirmWatchBtn) {
+                confirmWatchBtn.addEventListener("click", async () => {
+                    const pending = parseInt(card.dataset.pendingRating || "0", 10);
+                    const confirmed = parseInt(card.dataset.confirmedRating || "0", 10);
+                    const ratingToSave = pending || confirmed;
+
+                    if (!ratingToSave) {
+                        if (ratingBarEl) {
+                            ratingBarEl.classList.add("needs-rating-pulse");
+                            setTimeout(() => ratingBarEl.classList.remove("needs-rating-pulse"), 900);
+                        }
+                        showToast(`⭐ Lütfen önce "${title}" için 1–10 arası puanınızı seçin, ardından "İzledim" butonuna tıklayın.`);
+                        return;
+                    }
+
+                    await submitCardWatchedRating(ratingToSave);
+                });
+            }
 
             const removeBtn = card.querySelector(".remove-watchlist-btn");
             if (removeBtn) {
@@ -493,6 +569,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         guestWatchlist = guestWatchlist.filter(
                             (x) => !(Number(x.tmdb_id) === tmdbId && x.media_type === mediaType)
                         );
+                        syncGuestWatchlistSessionStorage();
                         updateCounters(guestWatchlist.length);
                         syncDiscoverCardsWithGuestWatchlist();
                         await refreshGuestRecommendationsPreview(false);
@@ -792,10 +869,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 let ratingBtnsHtml = "";
                 for (let r = 1; r <= 10; r++) {
-                    const selectedCls = item.user_rating === r ? "selected" : "";
-                    const toneCls = r < 5 ? "low-rate" : r >= 8 ? "high-rate" : "";
-                    ratingBtnsHtml += `<button type="button" class="rate-num-btn ${selectedCls} ${toneCls}" data-rating="${r}" title="İzledim (${r}/10 Puan)">${r}</button>`;
+                    const selectedCls = (item.in_watchlist && item.user_rating === r) ? "selected" : "";
+                    ratingBtnsHtml += `<button type="button" class="rate-num-btn ${selectedCls}" data-rating="${r}" title="${r}/10 Puan Seç">${r}</button>`;
                 }
+
+                const watchedHeaderLabel = (item.in_watchlist && item.user_rating)
+                    ? `✓ İzlendi (Puanın: <strong class="gold-text">${item.user_rating}/10</strong>)`
+                    : "Puan Seç (1-10):";
+                const watchedBtnText = (item.in_watchlist && item.user_rating)
+                    ? `✓ İzlendi (${item.user_rating}/10)`
+                    : "🎬 İzledim";
+                const watchedBtnCls = (item.in_watchlist && item.user_rating) ? "is-watched-confirmed" : "";
 
                 article.innerHTML = `
                     <div class="media-poster-wrap">
@@ -822,7 +906,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         <p class="media-overview">${escapeHtml(item.overview || "")}</p>
                         <div class="quick-rate-box">
                             <div class="quick-rate-header">
-                                <span class="rate-label">${item.in_watchlist ? "✓ İzledim:" : "İzledim (Puanla):"}</span>
+                                <span class="rate-label">${watchedHeaderLabel}</span>
+                                <button type="button" class="card-watch-confirm-btn ${watchedBtnCls}">${watchedBtnText}</button>
                             </div>
                             <div class="rating-number-bar">${ratingBtnsHtml}</div>
                         </div>
@@ -1006,13 +1091,45 @@ document.addEventListener("DOMContentLoaded", () => {
         const userRatingVal = document.getElementById("detailUserRatingVal");
         const ratePromptLabel = document.getElementById("detailRatePromptLabel");
 
-        let selectedRating = 8;
+        let selectedRating = null;
         const preSelected = ratingBar?.querySelector(".detail-rate-btn.selected");
-        if (preSelected) {
-            selectedRating = parseInt(preSelected.dataset.rating || "8", 10);
+        if (preSelected && detailRoot.dataset.inWatchlist === "true") {
+            selectedRating = parseInt(preSelected.dataset.rating || "0", 10) || null;
+        }
+
+        // Misafir modunda detay sayfası açıldığında geçici listede varsa senkronize et
+        if (!isAuthenticated) {
+            const guestMatch = guestWatchlist.find(
+                (x) => Number(x.tmdb_id) === tmdbId && x.media_type === mediaType
+            );
+            if (guestMatch && guestMatch.user_rating) {
+                selectedRating = Number(guestMatch.user_rating);
+                if (watchedRibbon) watchedRibbon.hidden = false;
+                if (userRatingVal) userRatingVal.textContent = String(selectedRating);
+                if (saveBtn) {
+                    saveBtn.textContent = `✓ İzlendi (${selectedRating}/10)`;
+                    saveBtn.classList.add("is-watched-confirmed");
+                }
+                if (removeBtn) removeBtn.hidden = false;
+                if (ratePromptLabel) {
+                    ratePromptLabel.innerHTML = `✓ İzlendi — Verdiğin Puan: <strong class="gold-text">${selectedRating}/10</strong>:`;
+                }
+                ratingBar?.querySelectorAll(".detail-rate-btn").forEach((b) => {
+                    b.classList.toggle("selected", Number(b.dataset.rating) === selectedRating);
+                });
+            }
         }
 
         async function saveDetailRating(ratingToSave) {
+            if (!ratingToSave) {
+                if (ratingBar) {
+                    ratingBar.classList.add("needs-rating-pulse");
+                    setTimeout(() => ratingBar.classList.remove("needs-rating-pulse"), 900);
+                }
+                showToast(`⭐ Lütfen önce "${title}" için 1–10 arası puanınızı seçin, ardından "İzledim" butonuna tıklayın.`);
+                return;
+            }
+
             if (!isAuthenticated) {
                 upsertGuestWatchlistItem({
                     tmdb_id: tmdbId,
@@ -1025,10 +1142,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
                 if (watchedRibbon) watchedRibbon.hidden = false;
                 if (userRatingVal) userRatingVal.textContent = String(ratingToSave);
-                if (saveBtn) saveBtn.textContent = "✓ İzlendi (Güncelle)";
+                if (saveBtn) {
+                    saveBtn.textContent = `✓ İzlendi (${ratingToSave}/10)`;
+                    saveBtn.classList.add("is-watched-confirmed");
+                    saveBtn.classList.remove("is-pending-confirm");
+                }
                 if (removeBtn) removeBtn.hidden = false;
                 if (ratePromptLabel) {
-                    ratePromptLabel.innerHTML = `✓ İzlendi (Geçici Puanın: <strong class="gold-text">${ratingToSave}/10</strong>):`;
+                    ratePromptLabel.innerHTML = `✓ İzlendi — Verdiğin Puan: <strong class="gold-text">${ratingToSave}/10</strong> (Değiştirmek için yeni puan seçip güncelle):`;
                 }
                 showToast(`✓ "${title}" (${ratingToSave}/10) İzlendi olarak işaretlendi!`);
                 return;
@@ -1053,10 +1174,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 if (watchedRibbon) watchedRibbon.hidden = false;
                 if (userRatingVal) userRatingVal.textContent = String(ratingToSave);
-                if (saveBtn) saveBtn.textContent = "✓ İzlendi (Güncelle)";
+                if (saveBtn) {
+                    saveBtn.textContent = `✓ İzlendi (${ratingToSave}/10)`;
+                    saveBtn.classList.add("is-watched-confirmed");
+                    saveBtn.classList.remove("is-pending-confirm");
+                }
                 if (removeBtn) removeBtn.hidden = false;
                 if (ratePromptLabel) {
-                    ratePromptLabel.innerHTML = `✓ İzlendi (Puanın: <strong class="gold-text">${ratingToSave}/10</strong>) — Puanı Güncelle:`;
+                    ratePromptLabel.innerHTML = `✓ İzlendi — Verdiğin Puan: <strong class="gold-text">${ratingToSave}/10</strong> (Değiştirmek için yeni puan seçip güncelle):`;
                 }
                 if (data.stats) updateCounters(data.stats.total);
                 showToast(`✓ "${title}" (${ratingToSave}/10) İzlendi olarak kaydedildi!`);
@@ -1068,11 +1193,18 @@ document.addEventListener("DOMContentLoaded", () => {
         if (ratingBar) {
             ratingBar.querySelectorAll(".detail-rate-btn").forEach((btn) => {
                 btn.addEventListener("click", () => {
-                    selectedRating = parseInt(btn.dataset.rating || "8", 10);
+                    selectedRating = parseInt(btn.dataset.rating || "0", 10);
                     ratingBar.querySelectorAll(".detail-rate-btn").forEach((b) => {
                         b.classList.toggle("selected", b === btn);
                     });
-                    saveDetailRating(selectedRating);
+                    if (ratePromptLabel) {
+                        ratePromptLabel.innerHTML = `Seçilen Puan: <strong class="gold-text">${selectedRating}/10</strong> — Onaylamak için "İzledim" butonuna tıkla:`;
+                    }
+                    if (saveBtn) {
+                        saveBtn.textContent = `🎬 İzledim (${selectedRating}/10 Onayla)`;
+                        saveBtn.classList.add("is-pending-confirm");
+                        saveBtn.classList.remove("is-watched-confirmed");
+                    }
                 });
             });
         }
@@ -1083,16 +1215,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (removeBtn) {
             removeBtn.addEventListener("click", async () => {
+                selectedRating = null;
+                ratingBar?.querySelectorAll(".detail-rate-btn").forEach((b) => b.classList.remove("selected"));
+
                 if (!isAuthenticated) {
                     guestWatchlist = guestWatchlist.filter(
                         (x) => !(Number(x.tmdb_id) === tmdbId && x.media_type === mediaType)
                     );
                     updateCounters(guestWatchlist.length);
                     if (watchedRibbon) watchedRibbon.hidden = true;
-                    if (saveBtn) saveBtn.textContent = "✓ İzledim";
+                    if (saveBtn) {
+                        saveBtn.textContent = "🎬 İzledim";
+                        saveBtn.classList.remove("is-watched-confirmed", "is-pending-confirm");
+                    }
                     removeBtn.hidden = true;
                     if (ratePromptLabel) {
-                        ratePromptLabel.textContent = "Puan Seç (1-10) ve İzledim Olarak İşaretle:";
+                        ratePromptLabel.textContent = '1–10 Arası Puanını Seç ve "İzledim" Butonuna Tıkla:';
                     }
                     showToast(`🗑️ "${title}" geçici listeden çıkarıldı.`);
                     return;
@@ -1106,10 +1244,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     const data = await res.json();
 
                     if (watchedRibbon) watchedRibbon.hidden = true;
-                    if (saveBtn) saveBtn.textContent = "✓ İzledim";
+                    if (saveBtn) {
+                        saveBtn.textContent = "🎬 İzledim";
+                        saveBtn.classList.remove("is-watched-confirmed", "is-pending-confirm");
+                    }
                     removeBtn.hidden = true;
                     if (ratePromptLabel) {
-                        ratePromptLabel.textContent = "Puan Seç (1-10) ve İzledim Olarak İşaretle:";
+                        ratePromptLabel.textContent = '1–10 Arası Puanını Seç ve "İzledim" Butonuna Tıkla:';
                     }
                     if (data.stats) updateCounters(data.stats.total);
                     showToast(`🗑️ "${title}" izleme listenden çıkarıldı.`);
@@ -1125,15 +1266,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const trailerIframe = document.getElementById("trailerYoutubeIframe");
 
         function openTrailerModal() {
-            if (!trailerModal || !trailerIframe || !trailerKey) return;
-            trailerIframe.src = `https://www.youtube.com/embed/${trailerKey}?autoplay=1&rel=0`;
+            if (!trailerModal) return;
+            if (trailerIframe && trailerKey) {
+                trailerIframe.src = `https://www.youtube.com/embed/${trailerKey}?autoplay=1&rel=0`;
+            }
             trailerModal.hidden = false;
         }
 
         function closeTrailerModal() {
-            if (!trailerModal || !trailerIframe) return;
+            if (!trailerModal) return;
             trailerModal.hidden = true;
-            trailerIframe.src = "";
+            if (trailerIframe) {
+                trailerIframe.src = "";
+            }
         }
 
         if (openTrailerBtn) openTrailerBtn.addEventListener("click", openTrailerModal);

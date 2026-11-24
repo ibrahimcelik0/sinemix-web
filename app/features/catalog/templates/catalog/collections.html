@@ -1,0 +1,454 @@
+{% extends "base.html" %}
+
+{% block title %}SineMix - Sinema Evrenleri & Stüdyo Koleksiyonları{% endblock %}
+
+{% block body_class %}page-home{% endblock %}
+
+{% block extra_css %}
+<style>
+    .collections-page-header {
+        position: relative;
+        padding: 28px 30px;
+        margin-bottom: 30px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, rgba(20, 24, 38, 0.88) 0%, rgba(11, 13, 22, 0.95) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+        overflow: hidden;
+    }
+
+    .collections-page-header::before {
+        content: "";
+        position: absolute;
+        top: -60%;
+        right: -10%;
+        width: 420px;
+        height: 420px;
+        background: radial-gradient(circle, rgba(245, 197, 24, 0.14) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .collections-section-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 30px 0 18px;
+    }
+
+    .collections-section-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.32rem;
+        font-weight: 700;
+        color: #f8fafc;
+        margin: 0;
+        letter-spacing: -0.01em;
+    }
+
+    .collections-section-sub {
+        font-size: 0.84rem;
+        color: #94a3b8;
+    }
+
+    .universe-hub-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 22px;
+        margin-bottom: 40px;
+    }
+
+    /* Sinematik Afiş Kolajlı & İmzalı Evren Kartı */
+    .universe-hub-card {
+        --hub-accent: #f5c518;
+        --hub-accent-soft: rgba(245, 197, 24, 0.16);
+        --hub-border: rgba(245, 197, 24, 0.35);
+        --hub-glow: rgba(245, 197, 24, 0.22);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 270px;
+        border-radius: 18px;
+        padding: 24px;
+        text-decoration: none;
+        color: #f8fafc;
+        background: #0c0f1a;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
+        overflow: hidden;
+        isolation: isolate;
+        transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+                    border-color 0.32s ease,
+                    box-shadow 0.32s ease;
+    }
+
+    /* Evrene Özel Renk Vurguları */
+    .universe-hub-card[data-slug="marvel"] {
+        --hub-accent: #f87171;
+        --hub-accent-soft: rgba(239, 68, 68, 0.18);
+        --hub-border: rgba(239, 68, 68, 0.5);
+        --hub-glow: rgba(239, 68, 68, 0.26);
+    }
+
+    .universe-hub-card[data-slug="star-wars"] {
+        --hub-accent: #38bdf8;
+        --hub-accent-soft: rgba(56, 189, 248, 0.18);
+        --hub-border: rgba(56, 189, 248, 0.5);
+        --hub-glow: rgba(56, 189, 248, 0.26);
+    }
+
+    .universe-hub-card[data-slug="dc"] {
+        --hub-accent: #818cf8;
+        --hub-accent-soft: rgba(99, 102, 241, 0.18);
+        --hub-border: rgba(99, 102, 241, 0.52);
+        --hub-glow: rgba(99, 102, 241, 0.26);
+    }
+
+    .universe-hub-card[data-slug="fantasy-worlds"] {
+        --hub-accent: #34d399;
+        --hub-accent-soft: rgba(16, 185, 129, 0.18);
+        --hub-border: rgba(52, 211, 153, 0.5);
+        --hub-glow: rgba(16, 185, 129, 0.25);
+    }
+
+    .universe-hub-card[data-slug="twd"] {
+        --hub-accent: #fb923c;
+        --hub-accent-soft: rgba(249, 115, 22, 0.18);
+        --hub-border: rgba(249, 115, 22, 0.5);
+        --hub-glow: rgba(249, 115, 22, 0.24);
+    }
+
+    .universe-hub-card[data-slug="pixar"] {
+        --hub-accent: #facc15;
+        --hub-accent-soft: rgba(250, 204, 21, 0.18);
+        --hub-border: rgba(250, 204, 21, 0.5);
+        --hub-glow: rgba(250, 204, 21, 0.24);
+    }
+
+    .universe-hub-card[data-slug="walt-disney"] {
+        --hub-accent: #2dd4bf;
+        --hub-accent-soft: rgba(45, 212, 191, 0.18);
+        --hub-border: rgba(45, 212, 191, 0.5);
+        --hub-glow: rgba(45, 212, 191, 0.25);
+    }
+
+    .universe-hub-card[data-slug="dreamworks-family"] {
+        --hub-accent: #c084fc;
+        --hub-accent-soft: rgba(192, 132, 252, 0.18);
+        --hub-border: rgba(192, 132, 252, 0.5);
+        --hub-glow: rgba(192, 132, 252, 0.25);
+    }
+
+    .universe-hub-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--hub-border);
+        box-shadow: 0 20px 44px rgba(0, 0, 0, 0.6), 0 0 28px var(--hub-glow);
+    }
+
+    /* Arka Plan 3-4 Poster Kolajı */
+    .hub-card-collage {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 3px;
+        z-index: -2;
+        opacity: 0.34;
+        filter: saturate(1.12) contrast(1.05);
+        transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease;
+    }
+
+    .universe-hub-card:hover .hub-card-collage {
+        transform: scale(1.04);
+        opacity: 0.46;
+    }
+
+    .hub-card-collage img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center top;
+    }
+
+    /* Sinematik Koyu Gradyan & Renk Işıması Katmanı */
+    .hub-card-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background:
+            radial-gradient(circle at 88% 14%, var(--hub-accent-soft), transparent 55%),
+            linear-gradient(180deg, rgba(10, 12, 20, 0.52) 0%, rgba(10, 12, 20, 0.86) 52%, rgba(9, 11, 18, 0.98) 100%);
+    }
+
+    /* Üst Bar: İkon & Yapım Sayısı Rozetleri */
+    .hub-card-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .hub-icon-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        font-size: 1.65rem;
+        background: rgba(15, 18, 30, 0.72);
+        border: 1px solid var(--hub-border);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(8px);
+    }
+
+    .hub-badges-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .hub-order-badge {
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.73rem;
+        font-weight: 600;
+        background: rgba(15, 18, 30, 0.78);
+        color: #cbd5e1;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(6px);
+    }
+
+    .hub-count-pill {
+        padding: 5px 12px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        background: var(--hub-accent-soft);
+        color: var(--hub-accent);
+        border: 1px solid var(--hub-border);
+        backdrop-filter: blur(6px);
+    }
+
+    /* Orta Gövde: Başlık, Tagline ve Kısa Rehber Özeti */
+    .hub-card-body {
+        margin-bottom: 18px;
+    }
+
+    .hub-card-title {
+        font-size: 1.32rem;
+        font-weight: 800;
+        color: #ffffff;
+        margin: 0 0 6px;
+        letter-spacing: -0.01em;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.65);
+    }
+
+    .hub-card-tagline {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--hub-accent);
+        margin: 0 0 10px;
+        line-height: 1.4;
+    }
+
+    .hub-card-guide-preview {
+        font-size: 0.82rem;
+        color: #cbd5e1;
+        line-height: 1.5;
+        margin: 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        opacity: 0.9;
+    }
+
+    /* Alt Bar: Mini Poster Önizlemeleri & Evreni Keşfet Butonu */
+    .hub-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding-top: 14px;
+        border-top: 1px solid rgba(255, 255, 255, 0.09);
+    }
+
+    .hub-mini-thumbs {
+        display: flex;
+        align-items: center;
+    }
+
+    .hub-mini-thumbs img {
+        width: 28px;
+        height: 40px;
+        border-radius: 6px;
+        object-fit: cover;
+        border: 1.5px solid rgba(15, 18, 30, 0.95);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+        margin-left: -8px;
+        transition: transform 0.2s ease;
+    }
+
+    .hub-mini-thumbs img:first-child {
+        margin-left: 0;
+    }
+
+    .universe-hub-card:hover .hub-mini-thumbs img {
+        transform: translateY(-2px);
+    }
+
+    .hub-explore-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 14px;
+        border-radius: 10px;
+        font-size: 0.83rem;
+        font-weight: 700;
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, transform 0.25s ease;
+        white-space: nowrap;
+    }
+
+    .universe-hub-card:hover .hub-explore-cta {
+        background: var(--hub-accent-soft);
+        border-color: var(--hub-border);
+        color: var(--hub-accent);
+        transform: translateX(3px);
+    }
+
+    @media (max-width: 768px) {
+        .universe-hub-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block navbar %}
+    {% include "navbar.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="platform-container">
+    <!-- Üst Sinematik Vitrin Başlığı -->
+    <header class="collections-page-header">
+        <div class="hero-left">
+            <span class="api-status-pill" style="margin-bottom: 10px; display: inline-flex;">
+                <span class="status-dot live"></span>
+                Disney+ & Apple TV+ Kürasyonu • Kronolojik İzleme Rehberleri
+            </span>
+            <h1 class="section-main-title" style="margin-bottom: 6px;">🌌 Sinema Evrenleri & Stüdyo Koleksiyonları</h1>
+            <p style="color: #94a3b8; font-size: 0.94rem; margin: 0; max-width: 760px;">
+                Hangi evrene nereden başlayacağını keşfet, kronolojik izleme sırasını takip et ve her evrendeki kişisel ilerlemeni adım adım tamamla.
+            </p>
+        </div>
+    </header>
+
+    <!-- 1. Sinema Evrenleri -->
+    <div class="collections-section-heading">
+        <h2 class="collections-section-title">🎬 Sinema Evrenleri</h2>
+        <span class="collections-section-sub">Hikaye bağlantılı ve kronolojik izleme sıralı evrenler</span>
+    </div>
+
+    <div class="universe-hub-grid">
+        {% for col in universes %}
+        <a href="{{ url_for('catalog.collection_detail', slug=col.slug) }}"
+           class="universe-hub-card"
+           data-slug="{{ col.slug }}">
+
+            <!-- Arka Plan 3-4 Afiş Kolajı -->
+            <div class="hub-card-collage" aria-hidden="true">
+                {% for poster in col.preview_posters[:4] %}
+                    <img src="{{ poster }}" alt="" loading="lazy" onerror="this.onerror=null;this.src='/static/img/no-poster.svg';">
+                {% endfor %}
+            </div>
+            <div class="hub-card-overlay" aria-hidden="true"></div>
+
+            <div>
+                <div class="hub-card-top">
+                    <span class="hub-icon-badge">{{ col.icon }}</span>
+                    <div class="hub-badges-group">
+                        {% if col.is_sequential %}
+                            <span class="hub-order-badge">🧭 Sıralı Rehber</span>
+                        {% endif %}
+                        <span class="hub-count-pill">{{ col.count }} Yapım</span>
+                    </div>
+                </div>
+
+                <div class="hub-card-body">
+                    <h3 class="hub-card-title">{{ col.title }}</h3>
+                    <p class="hub-card-tagline">{{ col.tagline }}</p>
+                    <p class="hub-card-guide-preview">{{ col.watch_order_note }}</p>
+                </div>
+            </div>
+
+            <div class="hub-card-footer">
+                <div class="hub-mini-thumbs">
+                    {% for poster in col.preview_posters[:4] %}
+                        <img src="{{ poster }}" alt="{{ col.title }}" loading="lazy" onerror="this.onerror=null;this.src='/static/img/no-poster.svg';">
+                    {% endfor %}
+                </div>
+                <span class="hub-explore-cta">Evreni Keşfet →</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- 2. Stüdyo & Animasyon Koleksiyonları -->
+    <div class="collections-section-heading">
+        <h2 class="collections-section-title">✨ Stüdyo & Animasyon Koleksiyonları</h2>
+        <span class="collections-section-sub">Efsanevi animasyon stüdyolarının seçkin başyapıtları</span>
+    </div>
+
+    <div class="universe-hub-grid">
+        {% for col in studios %}
+        <a href="{{ url_for('catalog.collection_detail', slug=col.slug) }}"
+           class="universe-hub-card"
+           data-slug="{{ col.slug }}">
+
+            <!-- Arka Plan 3-4 Afiş Kolajı -->
+            <div class="hub-card-collage" aria-hidden="true">
+                {% for poster in col.preview_posters[:4] %}
+                    <img src="{{ poster }}" alt="" loading="lazy" onerror="this.onerror=null;this.src='/static/img/no-poster.svg';">
+                {% endfor %}
+            </div>
+            <div class="hub-card-overlay" aria-hidden="true"></div>
+
+            <div>
+                <div class="hub-card-top">
+                    <span class="hub-icon-badge">{{ col.icon }}</span>
+                    <div class="hub-badges-group">
+                        <span class="hub-order-badge">🏆 Stüdyo Seçkisi</span>
+                        <span class="hub-count-pill">{{ col.count }} Yapım</span>
+                    </div>
+                </div>
+
+                <div class="hub-card-body">
+                    <h3 class="hub-card-title">{{ col.title }}</h3>
+                    <p class="hub-card-tagline">{{ col.tagline }}</p>
+                    <p class="hub-card-guide-preview">{{ col.why_watch }}</p>
+                </div>
+            </div>
+
+            <div class="hub-card-footer">
+                <div class="hub-mini-thumbs">
+                    {% for poster in col.preview_posters[:4] %}
+                        <img src="{{ poster }}" alt="{{ col.title }}" loading="lazy" onerror="this.onerror=null;this.src='/static/img/no-poster.svg';">
+                    {% endfor %}
+                </div>
+                <span class="hub-explore-cta">Evreni Keşfet →</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

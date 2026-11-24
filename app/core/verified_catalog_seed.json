@@ -32,7 +32,9 @@
       "destiny"
     ],
     "popularity": 239.55,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 8
   },
   {
     "tmdb_id": 61671,
@@ -68,7 +70,9 @@
       "prison"
     ],
     "popularity": 239.1,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 2,
+    "number_of_episodes": 28
   },
   {
     "tmdb_id": 76669,
@@ -107,7 +111,9 @@
       "secrets"
     ],
     "popularity": 238.65,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 8,
+    "number_of_episodes": 64
   },
   {
     "tmdb_id": 71446,
@@ -147,7 +153,9 @@
       "teamwork"
     ],
     "popularity": 238.2,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 5,
+    "number_of_episodes": 41
   },
   {
     "tmdb_id": 70523,
@@ -247,7 +255,9 @@
       "investigation"
     ],
     "popularity": 237.3,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 4,
+    "number_of_episodes": 13
   },
   {
     "tmdb_id": 71912,
@@ -287,7 +297,9 @@
       "supernatural"
     ],
     "popularity": 236.85,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 3,
+    "number_of_episodes": 24
   },
   {
     "tmdb_id": 87739,
@@ -315,7 +327,9 @@
       "transformation"
     ],
     "popularity": 236.4,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 7
   },
   {
     "tmdb_id": 66732,
@@ -413,7 +427,9 @@
       "marvel"
     ],
     "popularity": 235.5,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 9
   },
   {
     "tmdb_id": 44217,
@@ -457,7 +473,9 @@
       "destiny"
     ],
     "popularity": 235.05,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 6,
+    "number_of_episodes": 89
   },
   {
     "tmdb_id": 88396,
@@ -493,7 +511,9 @@
       "legacy"
     ],
     "popularity": 234.6,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 6
   },
   {
     "tmdb_id": 61889,
@@ -534,7 +554,9 @@
       "marvel"
     ],
     "popularity": 234.15,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 3,
+    "number_of_episodes": 39
   },
   {
     "tmdb_id": 91297,
@@ -569,7 +591,9 @@
       "destiny"
     ],
     "popularity": 233.7,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 3,
+    "number_of_episodes": 18
   },
   {
     "tmdb_id": 84958,
@@ -609,7 +633,9 @@
       "marvel"
     ],
     "popularity": 233.25,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 2,
+    "number_of_episodes": 12
   },
   {
     "tmdb_id": 67178,
@@ -650,7 +676,9 @@
       "marvel"
     ],
     "popularity": 232.8,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 2,
+    "number_of_episodes": 26
   },
   {
     "tmdb_id": 91363,
@@ -689,7 +717,9 @@
       "marvel"
     ],
     "popularity": 232.35,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 3,
+    "number_of_episodes": 26
   },
   {
     "tmdb_id": 60625,
@@ -729,7 +759,9 @@
       "satire"
     ],
     "popularity": 231.9,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 7,
+    "number_of_episodes": 71
   },
   {
     "tmdb_id": 88329,
@@ -764,7 +796,9 @@
       "marvel"
     ],
     "popularity": 231.45,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 6
   },
   {
     "tmdb_id": 60574,
@@ -800,7 +834,9 @@
       "historical events"
     ],
     "popularity": 231.0,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 6,
+    "number_of_episodes": 36
   },
   {
     "tmdb_id": 92749,
@@ -840,7 +876,9 @@
       "marvel"
     ],
     "popularity": 230.55,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 6
   },
   {
     "tmdb_id": 96677,
@@ -879,7 +917,9 @@
       "detective"
     ],
     "popularity": 230.1,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 3,
+    "number_of_episodes": 17
   },
   {
     "tmdb_id": 92783,
@@ -918,7 +958,9 @@
       "marvel"
     ],
     "popularity": 229.65,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 6
   },
   {
     "tmdb_id": 1402,
@@ -957,7 +999,9 @@
       "dystopia"
     ],
     "popularity": 229.2,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 11,
+    "number_of_episodes": 177
   },
   {
     "tmdb_id": 92784,
@@ -992,7 +1036,9 @@
       "comedy"
     ],
     "popularity": 228.75,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 9
   },
   {
     "tmdb_id": 92830,
@@ -1028,7 +1074,9 @@
       "star wars"
     ],
     "popularity": 228.3,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 6
   },
   {
     "tmdb_id": 90669,
@@ -1067,7 +1115,9 @@
       "paradox"
     ],
     "popularity": 227.85,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 8
   },
   {
     "tmdb_id": 119051,
@@ -1106,7 +1156,9 @@
       "dark comedy"
     ],
     "popularity": 227.4,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 8
   },
   {
     "tmdb_id": 1396,
@@ -1207,7 +1259,9 @@
       "survival"
     ],
     "popularity": 226.5,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 3,
+    "number_of_episodes": 24
   },
   {
     "tmdb_id": 2288,
@@ -1247,7 +1301,9 @@
       "brotherhood"
     ],
     "popularity": 226.05,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 5,
+    "number_of_episodes": 90
   },
   {
     "tmdb_id": 114472,
@@ -1286,7 +1342,9 @@
       "marvel"
     ],
     "popularity": 225.6,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 6
   },
   {
     "tmdb_id": 1100,
@@ -1317,7 +1375,9 @@
       "new york"
     ],
     "popularity": 225.15,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 9,
+    "number_of_episodes": 208
   },
   {
     "tmdb_id": 194583,
@@ -1356,7 +1416,9 @@
       "dystopia"
     ],
     "popularity": 224.7,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 6
   },
   {
     "tmdb_id": 1399,
@@ -1397,7 +1459,9 @@
       "political intrigue"
     ],
     "popularity": 224.25,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 8,
+    "number_of_episodes": 73
   },
   {
     "tmdb_id": 100088,
@@ -1490,7 +1554,9 @@
       "life journey"
     ],
     "popularity": 223.35,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 2,
+    "number_of_episodes": 12
   },
   {
     "tmdb_id": 197177,
@@ -1529,7 +1595,9 @@
       "rebellion"
     ],
     "popularity": 222.9,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 6
   },
   {
     "tmdb_id": 138501,
@@ -1564,7 +1632,9 @@
       "marvel"
     ],
     "popularity": 222.45,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 5
   },
   {
     "tmdb_id": 226529,
@@ -1596,7 +1666,9 @@
       "humor"
     ],
     "popularity": 222.0,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 2,
+    "number_of_episodes": 15
   },
   {
     "tmdb_id": 94997,
@@ -1636,7 +1708,9 @@
       "destiny"
     ],
     "popularity": 221.55,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 2,
+    "number_of_episodes": 18
   },
   {
     "tmdb_id": 34524,
@@ -1675,7 +1749,9 @@
       "high school"
     ],
     "popularity": 221.1,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 6,
+    "number_of_episodes": 100
   },
   {
     "tmdb_id": 138502,
@@ -1714,7 +1790,9 @@
       "marvel"
     ],
     "popularity": 220.65,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 9
   },
   {
     "tmdb_id": 259667,
@@ -1745,7 +1823,9 @@
       "transformation"
     ],
     "popularity": 220.2,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 10
   },
   {
     "tmdb_id": 116135,
@@ -1788,7 +1868,9 @@
       "conquest"
     ],
     "popularity": 219.75,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 3,
+    "number_of_episodes": 24
   },
   {
     "tmdb_id": 76331,
@@ -1816,7 +1898,9 @@
       "betrayal"
     ],
     "popularity": 219.3,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 4,
+    "number_of_episodes": 39
   },
   {
     "tmdb_id": 202555,
@@ -1856,7 +1940,9 @@
       "marvel"
     ],
     "popularity": 218.85,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 9
   },
   {
     "tmdb_id": 4607,
@@ -1896,7 +1982,9 @@
       "destiny"
     ],
     "popularity": 218.4,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 6,
+    "number_of_episodes": 121
   },
   {
     "tmdb_id": 87108,
@@ -2098,7 +2186,9 @@
       "dark hero"
     ],
     "popularity": 216.6,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 4,
+    "number_of_episodes": 30
   },
   {
     "tmdb_id": 1405,
@@ -2138,7 +2228,9 @@
       "double life"
     ],
     "popularity": 216.15,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 8,
+    "number_of_episodes": 96
   },
   {
     "tmdb_id": 120911,
@@ -2173,7 +2265,9 @@
       "espionage"
     ],
     "popularity": 215.7,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 8
   },
   {
     "tmdb_id": 131927,
@@ -2212,7 +2306,9 @@
       "psychological thriller"
     ],
     "popularity": 215.25,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 10
   },
   {
     "tmdb_id": 224372,
@@ -2247,7 +2343,9 @@
       "life journey"
     ],
     "popularity": 214.8,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 6
   },
   {
     "tmdb_id": 259909,
@@ -2282,7 +2380,9 @@
       "mystery"
     ],
     "popularity": 214.35,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 10
   },
   {
     "tmdb_id": 1438,
@@ -2318,7 +2418,9 @@
       "society"
     ],
     "popularity": 213.9,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 5,
+    "number_of_episodes": 60
   },
   {
     "tmdb_id": 63174,
@@ -2357,7 +2459,9 @@
       "mystery"
     ],
     "popularity": 213.45,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 6,
+    "number_of_episodes": 93
   },
   {
     "tmdb_id": 63333,
@@ -2397,7 +2501,9 @@
       "kingdom"
     ],
     "popularity": 213.0,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 5,
+    "number_of_episodes": 46
   },
   {
     "tmdb_id": 32910,
@@ -2437,7 +2543,9 @@
       "cosmic battle"
     ],
     "popularity": 212.55,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 3,
+    "number_of_episodes": 65
   },
   {
     "tmdb_id": 3444,
@@ -2476,7 +2584,9 @@
       "transformation"
     ],
     "popularity": 212.1,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 4,
+    "number_of_episodes": 52
   },
   {
     "tmdb_id": 6040,
@@ -2515,7 +2625,9 @@
       "transformation"
     ],
     "popularity": 211.65,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 3,
+    "number_of_episodes": 46
   },
   {
     "tmdb_id": 31109,
@@ -2554,7 +2666,9 @@
       "transformation"
     ],
     "popularity": 211.2,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 3,
+    "number_of_episodes": 52
   },
   {
     "tmdb_id": 46922,
@@ -2593,7 +2707,9 @@
       "time travel"
     ],
     "popularity": 210.75,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 8,
+    "number_of_episodes": 80
   },
   {
     "tmdb_id": 114478,
@@ -2632,7 +2748,9 @@
       "adventure"
     ],
     "popularity": 210.3,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 2,
+    "number_of_episodes": 10
   },
   {
     "tmdb_id": 131926,
@@ -2671,7 +2789,9 @@
       "optimism"
     ],
     "popularity": 209.85,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 9
   },
   {
     "tmdb_id": 3854,
@@ -2710,7 +2830,9 @@
       "marvel"
     ],
     "popularity": 209.4,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 2,
+    "number_of_episodes": 26
   },
   {
     "tmdb_id": 34391,
@@ -2749,7 +2871,9 @@
       "action"
     ],
     "popularity": 208.95,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 4,
+    "number_of_episodes": 104
   },
   {
     "tmdb_id": 45015,
@@ -2784,7 +2908,9 @@
       "friendship"
     ],
     "popularity": 208.5,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 1,
+    "number_of_episodes": 39
   },
   {
     "tmdb_id": 31132,
@@ -2823,7 +2949,9 @@
       "humor"
     ],
     "popularity": 208.05,
-    "added_at": "2026-11-24T09:38:25Z"
+    "added_at": "2026-11-24T09:38:25Z",
+    "number_of_seasons": 8,
+    "number_of_episodes": 261
   },
   {
     "tmdb_id": 375784,

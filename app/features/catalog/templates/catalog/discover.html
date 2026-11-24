@@ -10,35 +10,6 @@
 
 {% block content %}
     <div class="platform-container">
-        <!-- Kompakt Üst Başlık ve Hızlı Aksiyonlar -->
-        <header class="section-hero compact-hero">
-            <div class="hero-left">
-                <h1 class="section-main-title">🎬 SineMix Katalog</h1>
-                <span class="api-status-pill">
-                    <span class="status-dot {{ 'live' if tmdb_live else 'local' }}"></span>
-                    {% if current_user %}
-                        Kalıcı Hesap: <code>@{{ current_user.username }}</code>
-                    {% else %}
-                        434 Seçkin Film & Dizi
-                    {% endif %}
-                </span>
-            </div>
-            <div class="hero-actions">
-                <button type="button" id="clearWatchlistBtn" class="btn-danger-action" {{ 'hidden' if watchlist_count == 0 else '' }}>
-                    🗑️ Sıfırla
-                </button>
-                {% if current_user %}
-                    <a href="{{ url_for('recommendations.recommendations_page') }}" class="btn-gold-action">
-                        ✨ Sana Özel Öneriler
-                    </a>
-                {% else %}
-                    <button type="button" id="scrollToGuestRecsBtn" class="btn-gold-action">
-                        ✨ Önerileri Göster
-                    </button>
-                {% endif %}
-            </div>
-        </header>
-
         <!-- Tek Parça Belirgin Yatay Arama & Filtre Çubuğu (Unified Search & Filter Bar) -->
         <div class="unified-search-filter-bar">
             <!-- Sol: Büyüteç İkonlu Geniş Arama Kutusu -->
@@ -154,17 +125,31 @@
 
                         <p class="media-overview">{{ item.overview }}</p>
 
-                        <!-- "İzledim" Puan Seçici -->
+                        <!-- "İzledim" Puan Seçici (Varsayılan Nötr + Onay Butonlu) -->
                         <div class="quick-rate-box">
                             <div class="quick-rate-header">
-                                <span class="rate-label">{{ '✓ İzledim:' if item.in_watchlist else 'İzledim (Puanla):' }}</span>
+                                <span class="rate-label">
+                                    {% if item.in_watchlist and item.user_rating %}
+                                        ✓ İzlendi (Puanın: <strong class="gold-text">{{ item.user_rating }}/10</strong>)
+                                    {% else %}
+                                        Puan Seç (1-10):
+                                    {% endif %}
+                                </span>
+                                <button type="button"
+                                        class="card-watch-confirm-btn {{ 'is-watched-confirmed' if item.in_watchlist else '' }}">
+                                    {% if item.in_watchlist and item.user_rating %}
+                                        ✓ İzlendi ({{ item.user_rating }}/10)
+                                    {% else %}
+                                        🎬 İzledim
+                                    {% endif %}
+                                </button>
                             </div>
                             <div class="rating-number-bar">
                                 {% for r in range(1, 11) %}
                                     <button type="button"
-                                            class="rate-num-btn {{ 'selected' if item.user_rating == r else '' }} {{ 'low-rate' if r < 5 else ('high-rate' if r >= 8 else '') }}"
+                                            class="rate-num-btn {{ 'selected' if (item.in_watchlist and item.user_rating == r) else '' }}"
                                             data-rating="{{ r }}"
-                                            title="İzledim ({{ r }}/10 Puan)">
+                                            title="{{ r }}/10 Puan Seç">
                                         {{ r }}
                                     </button>
                                 {% endfor %}

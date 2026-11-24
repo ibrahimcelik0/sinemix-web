@@ -35,6 +35,13 @@ class Config:
     TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
     WATCHLIST_JSON_PATH = str(BASE_DIR / "data" / "watchlist.json")
 
+    # Şifresiz (Passwordless) 6 Haneli E-Posta OTP & SMTP Yapılandırması
+    SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com").strip() or "smtp.gmail.com"
+    SMTP_PORT = int(os.environ.get("SMTP_PORT", "587").strip() or "587")
+    SMTP_USER = os.environ.get("SMTP_USER", "").strip()
+    SMTP_PASS = os.environ.get("SMTP_PASS", "").strip()
+    ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "").strip()
+
 
 class DevelopmentConfig(Config):
     """Geliştirme ortamı yapılandırması."""

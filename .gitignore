@@ -16,7 +16,21 @@ npm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
-# SineMix Kullanıcı & Kişisel İzleme Verileri
+
+# SineMix Kullanıcı, OTP & Kişisel İzleme Verileri
 data/users.json
+data/otp_codes.json
 data/watchlists/
 data/watchlist.json
+
+# 1. Gizli anahtarlar, TMDB API key ve Gmail SMTP uygulama şifren
+.env
+
+# 2. Kayıtlı kullanıcıların gerçek e-posta adresleri ve kişisel profilleri
+data/users.json
+
+# 3. Python sanal ortamı ve önbellek dosyaları (gereksiz şişkinlik yapmasın)
+venv/
+.venv/
+__pycache__/
+*.pyc

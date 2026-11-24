@@ -1,0 +1,729 @@
+{% extends "base.html" %}
+
+{% block title %}SineMix - {{ collection.title }} İzleme Rehberi{% endblock %}
+
+{% block body_class %}page-home{% endblock %}
+
+{% block extra_css %}
+<style>
+    .collection-breadcrumb {
+        margin-bottom: 16px;
+    }
+
+    /* 1. Sinematik Hero Banner & Bulanıklaştırılmış Kapak */
+    .collection-hero-banner {
+        position: relative;
+        border-radius: 22px;
+        padding: 32px;
+        margin-bottom: 26px;
+        background: #0d101b;
+        border: 1px solid rgba(255, 255, 255, 0.11);
+        box-shadow: 0 24px 55px rgba(0, 0, 0, 0.55);
+        overflow: hidden;
+        isolation: isolate;
+    }
+
+    .collection-hero-bg {
+        position: absolute;
+        inset: -24px;
+        background-size: cover;
+        background-position: center 25%;
+        filter: blur(26px) saturate(1.25) brightness(0.42);
+        opacity: 0.65;
+        z-index: -2;
+        transform: scale(1.08);
+    }
+
+    .collection-hero-gradient {
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background:
+            radial-gradient(circle at 85% 15%, rgba(245, 197, 24, 0.16), transparent 55%),
+            linear-gradient(135deg, rgba(11, 14, 23, 0.78) 0%, rgba(11, 14, 23, 0.92) 60%, rgba(9, 11, 18, 0.98) 100%);
+    }
+
+    .collection-hero-top {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+
+    .collection-title-block {
+        max-width: 680px;
+    }
+
+    .collection-type-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        font-size: 0.76rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        background: rgba(245, 197, 24, 0.15);
+        color: #facc15;
+        border: 1px solid rgba(245, 197, 24, 0.35);
+        margin-bottom: 10px;
+    }
+
+    .collection-hero-title {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #ffffff;
+        margin: 0 0 8px;
+        letter-spacing: -0.02em;
+    }
+
+    .collection-hero-tagline {
+        font-size: 1rem;
+        color: #cbd5e1;
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    /* Görsel İlerleme Çubuğu (Progress Card) */
+    .collection-progress-card {
+        min-width: 280px;
+        max-width: 340px;
+        flex: 1;
+        background: rgba(15, 18, 30, 0.78);
+        border: 1px solid rgba(245, 197, 24, 0.32);
+        border-radius: 16px;
+        padding: 16px 18px;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+    }
+
+    .progress-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        font-size: 0.86rem;
+    }
+
+    .progress-label {
+        color: #e2e8f0;
+        font-weight: 600;
+    }
+
+    .progress-pct-badge {
+        color: #facc15;
+        font-weight: 800;
+        font-size: 0.95rem;
+    }
+
+    .collection-progress-track {
+        width: 100%;
+        height: 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.09);
+        overflow: hidden;
+        margin-bottom: 8px;
+    }
+
+    .collection-progress-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #eab308 0%, #facc15 55%, #fde047 100%);
+        box-shadow: 0 0 14px rgba(250, 204, 21, 0.55);
+        transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .progress-subtext {
+        font-size: 0.78rem;
+        color: #94a3b8;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    /* Editoryal Rehber Kutuları */
+    .collection-editorial-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .editorial-glass-box {
+        background: rgba(12, 15, 25, 0.68);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 14px;
+        padding: 18px 20px;
+        backdrop-filter: blur(10px);
+    }
+
+    .editorial-box-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        margin: 0 0 8px;
+    }
+
+    .editorial-box-title.gold {
+        color: #facc15;
+    }
+
+    .editorial-box-title.blue {
+        color: #38bdf8;
+    }
+
+    .editorial-box-text {
+        font-size: 0.88rem;
+        color: #d1d5db;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    /* 2. "Sıradaki Yapım" (Up Next) Hızlı Başlangıç Kutusu */
+    .up-next-spotlight-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 16px 20px;
+        border-radius: 16px;
+        background: linear-gradient(90deg, rgba(245, 197, 24, 0.16) 0%, rgba(15, 18, 30, 0.85) 100%);
+        border: 1px solid rgba(245, 197, 24, 0.45);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    .up-next-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .up-next-thumb {
+        width: 44px;
+        height: 64px;
+        border-radius: 8px;
+        object-fit: cover;
+        border: 1px solid rgba(245, 197, 24, 0.5);
+        flex-shrink: 0;
+    }
+
+    .up-next-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #facc15;
+        margin-bottom: 3px;
+    }
+
+    .up-next-title-line {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 0;
+    }
+
+    .up-next-meta {
+        font-size: 0.8rem;
+        color: #cbd5e1;
+        margin-top: 2px;
+    }
+
+    .up-next-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* 3. Anlık Frontend Filtre Sekmeleri */
+    .collection-filter-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 22px;
+        padding: 12px 16px;
+        border-radius: 16px;
+        background: rgba(17, 20, 32, 0.82);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(12px);
+    }
+
+    .collection-filter-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .col-filter-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 15px;
+        border-radius: 11px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.04);
+        color: #cbd5e1;
+        font-family: inherit;
+        font-size: 0.84rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .col-filter-btn:hover {
+        background: rgba(255, 255, 255, 0.09);
+        color: #ffffff;
+    }
+
+    .col-filter-btn.active {
+        background: rgba(245, 197, 24, 0.18);
+        border-color: #f5c518;
+        color: #facc15;
+        box-shadow: 0 4px 14px rgba(245, 197, 24, 0.18);
+    }
+
+    .col-filter-count {
+        padding: 1px 7px;
+        border-radius: 999px;
+        font-size: 0.74rem;
+        font-weight: 700;
+        background: rgba(0, 0, 0, 0.35);
+        color: inherit;
+    }
+
+    /* Kart Üzerinde "SIRADAKİ" Rozeti & Altın Çerçeve Vurgusu */
+    .media-card.is-up-next-card {
+        border: 2px solid #f5c518 !important;
+        box-shadow: 0 0 26px rgba(245, 197, 24, 0.28), 0 14px 30px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .up-next-card-ribbon {
+        position: absolute;
+        top: 40px;
+        left: 10px;
+        z-index: 6;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        background: linear-gradient(90deg, #eab308, #facc15);
+        color: #090b12;
+        box-shadow: 0 4px 12px rgba(245, 197, 24, 0.45);
+    }
+
+    .up-next-card-ribbon[hidden] {
+        display: none !important;
+    }
+</style>
+{% endblock %}
+
+{% block navbar %}
+    {% include "navbar.html" %}
+{% endblock %}
+
+{% block content %}
+{% set hero_bg = (collection.items[0].backdrop_path or collection.items[0].poster_path) if collection.items else '' %}
+{% set ns = namespace(up_next=None, up_next_idx=0) %}
+{% if collection.is_sequential %}
+    {% for item in collection.items %}
+        {% if ns.up_next is none and not item.in_watchlist %}
+            {% set ns.up_next = item %}
+            {% set ns.up_next_idx = loop.index %}
+        {% endif %}
+    {% endfor %}
+{% endif %}
+
+<div class="platform-container"
+     id="collectionDetailRoot"
+     data-is-sequential="{{ 'true' if collection.is_sequential else 'false' }}"
+     data-total-count="{{ collection.count }}">
+
+    <div class="collection-breadcrumb">
+        <a href="{{ url_for('catalog.collections') }}" class="back-home-pill">
+            ← Tüm Sinema Evrenlerine Dön
+        </a>
+    </div>
+
+    <!-- 1. Sinematik Hero Banner & Görsel İlerleme Çubuğu -->
+    <section class="collection-hero-banner">
+        {% if hero_bg %}
+            <div class="collection-hero-bg" style="background-image: url('{{ hero_bg }}');"></div>
+        {% endif %}
+        <div class="collection-hero-gradient"></div>
+
+        <div class="collection-hero-top">
+            <div class="collection-title-block">
+                <span class="collection-type-pill">
+                    {% if collection.is_sequential %}
+                        🧭 Kronolojik Sinema Evreni Rehberi
+                    {% else %}
+                        ✨ Stüdyo & Animasyon Koleksiyonu
+                    {% endif %}
+                </span>
+                <h1 class="collection-hero-title">{{ collection.icon }} {{ collection.title }}</h1>
+                <p class="collection-hero-tagline">{{ collection.tagline }}</p>
+            </div>
+
+            <!-- Görsel İlerleme Çubuğu (Progress Bar) -->
+            <div class="collection-progress-card">
+                <div class="progress-header-row">
+                    <span class="progress-label">Evren İlerlemen</span>
+                    <span class="progress-pct-badge" id="colProgressPctText">%{{ progress_pct }}</span>
+                </div>
+                <div class="collection-progress-track">
+                    <div class="collection-progress-fill" id="colProgressBarFill" style="width: {{ progress_pct }}%;"></div>
+                </div>
+                <div class="progress-subtext">
+                    <span>İzlenen: <strong id="colWatchedCountText" style="color: #f8fafc;">{{ watched_in_col }}</strong> / {{ collection.count }}</span>
+                    <span id="colRemainingCountText">{{ collection.count - watched_in_col }} yapım kaldı</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Editoryal Rehber Kutuları -->
+        <div class="collection-editorial-grid">
+            <div class="editorial-glass-box">
+                <h3 class="editorial-box-title gold">💡 Neden Bu Evreni Seçmelisin?</h3>
+                <p class="editorial-box-text">{{ collection.why_watch }}</p>
+            </div>
+            <div class="editorial-glass-box">
+                <h3 class="editorial-box-title blue">🧭 Neden Sırayla İzlemelisin / İzleme Rehberi</h3>
+                <p class="editorial-box-text">{{ collection.watch_order_note }}</p>
+            </div>
+        </div>
+
+        <!-- 2. "Sıradaki Yapım" (Up Next) Hızlı Başlangıç Kutusu -->
+        {% if collection.is_sequential %}
+            <div class="up-next-spotlight-bar" id="upNextSpotlightBar" {{ '' if ns.up_next else 'hidden' }}>
+                <div class="up-next-left">
+                    <img id="upNextThumb"
+                         class="up-next-thumb"
+                         src="{{ ns.up_next.poster_path if ns.up_next else '/static/img/no-poster.svg' }}"
+                         alt="{{ ns.up_next.title if ns.up_next else '' }}"
+                         onerror="this.onerror=null;this.src='/static/img/no-poster.svg';">
+                    <div>
+                        <span class="up-next-kicker">▶ Sıradaki Önerilen Yapım</span>
+                        <h4 class="up-next-title-line" id="upNextTitleText">
+                            {% if ns.up_next %}
+                                #{{ ns.up_next_idx }} • {{ ns.up_next.title }}
+                            {% endif %}
+                        </h4>
+                        <div class="up-next-meta" id="upNextMetaText">
+                            {% if ns.up_next %}
+                                {{ ns.up_next.release_year }} • ⭐ {{ ns.up_next.vote_average }} TMDB • {{ 'Dizi' if ns.up_next.media_type == 'tv' else 'Film' }}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="up-next-actions">
+                    <a id="upNextDetailLink"
+                       href="{{ url_for('catalog.detail', media_type=ns.up_next.media_type, tmdb_id=ns.up_next.tmdb_id) if ns.up_next else '#' }}"
+                       class="btn-gold-action">
+                        ▶ Yapımı İncele
+                    </a>
+                </div>
+            </div>
+
+            <div class="up-next-spotlight-bar" id="allCompletedBanner" {{ 'hidden' if ns.up_next or collection.count == 0 else '' }}>
+                <div class="up-next-left">
+                    <div>
+                        <span class="up-next-kicker">🏆 Evren Tamamlandı!</span>
+                        <h4 class="up-next-title-line">Bu evrendeki tüm yapımları izledin.</h4>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </section>
+
+    <!-- 3. Anlık Frontend Filtre Sekmeleri (Saf JavaScript) -->
+    <div class="collection-filter-toolbar">
+        <div class="collection-filter-tabs" id="collectionFilterTabs" role="tablist" aria-label="Evren Yapım Filtreleri">
+            <button type="button" class="col-filter-btn active" data-col-filter="all">
+                <span>Tümü</span>
+                <span class="col-filter-count" data-col-count="all">{{ collection.count }}</span>
+            </button>
+            <button type="button" class="col-filter-btn" data-col-filter="unwatched">
+                <span>İzlemediklerim</span>
+                <span class="col-filter-count" data-col-count="unwatched">{{ collection.count - watched_in_col }}</span>
+            </button>
+            <button type="button" class="col-filter-btn" data-col-filter="watched">
+                <span>İzlediklerim</span>
+                <span class="col-filter-count" data-col-count="watched">{{ watched_in_col }}</span>
+            </button>
+            <button type="button" class="col-filter-btn" data-col-filter="movie">
+                <span>🎬 Filmler</span>
+                <span class="col-filter-count" data-col-count="movie">{{ collection.items | selectattr('media_type', 'equalto', 'movie') | list | length }}</span>
+            </button>
+            <button type="button" class="col-filter-btn" data-col-filter="tv">
+                <span>📺 Diziler</span>
+                <span class="col-filter-count" data-col-count="tv">{{ collection.items | selectattr('media_type', 'equalto', 'tv') | list | length }}</span>
+            </button>
+        </div>
+
+        <div class="view-mode-switcher" id="viewModeSwitcher" role="group" aria-label="Görünüm Düzeni Seçici">
+            <button type="button" class="view-mode-btn active" data-view-mode="grid" title="Klasik 2:3 Poster Kart Görünümü">
+                <span>⊞</span>
+                <span>Kart</span>
+            </button>
+            <button type="button" class="view-mode-btn" data-view-mode="bar" title="Yatay Kompakt Çubuk Görünümü">
+                <span>☰</span>
+                <span>Çubuk</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Yapım Kartları Grid -->
+    <div class="catalog-grid view-grid" id="collectionItemsGrid">
+        {% for item in collection.items %}
+            {% set is_up_next = (collection.is_sequential and ns.up_next and ns.up_next.tmdb_id == item.tmdb_id and ns.up_next.media_type == item.media_type) %}
+            <article class="media-card {{ 'is-in-watchlist' if item.in_watchlist else '' }} {{ 'is-up-next-card' if is_up_next else '' }}"
+                     data-tmdb-id="{{ item.tmdb_id }}"
+                     data-media-type="{{ item.media_type }}"
+                     data-title="{{ item.title }}"
+                     data-year="{{ item.release_year }}"
+                     data-vote="{{ item.vote_average }}"
+                     data-seq-index="{{ loop.index }}"
+                     data-poster="{{ item.poster_path }}"
+                     data-genres='{{ item.genres | tojson }}'
+                     data-keywords='{{ item.keywords | tojson }}'>
+
+                <div class="media-poster-wrap">
+                    <span class="media-badge-type {{ item.media_type }}">
+                        {% if collection.is_sequential %}#{{ loop.index }} • {% endif %}{{ 'DİZİ' if item.media_type == 'tv' else 'FİLM' }}
+                    </span>
+                    <span class="media-badge-year">{{ item.release_year }}</span>
+
+                    <div class="up-next-card-ribbon" {{ '' if is_up_next else 'hidden' }}>
+                        ▶ SIRADAKİ
+                    </div>
+
+                    <div class="watched-ribbon" {{ '' if item.in_watchlist else 'hidden' }}>
+                        ✓ İzlendi (<strong class="user-rating-val">{{ item.user_rating }}</strong>/10)
+                    </div>
+
+                    <a href="{{ url_for('catalog.detail', media_type=item.media_type, tmdb_id=item.tmdb_id) }}" class="poster-link">
+                        <img src="{{ item.poster_path or '/static/img/no-poster.svg' }}" alt="{{ item.title }}" loading="lazy" onerror="this.onerror=null;this.src='/static/img/no-poster.svg';">
+                    </a>
+                </div>
+
+                <div class="media-card-body">
+                    <div class="media-meta-row">
+                        <span class="tmdb-score">⭐ {{ item.vote_average }}</span>
+                        <span class="card-year-inline">{{ item.release_year }}</span>
+                        <div class="genre-tags">
+                            {% for g in item.genres[:2] %}
+                                <span class="genre-tag">{{ g }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <h3 class="media-title">
+                        <a href="{{ url_for('catalog.detail', media_type=item.media_type, tmdb_id=item.tmdb_id) }}">{{ item.title }}</a>
+                    </h3>
+
+                    <p class="media-overview">{{ item.overview }}</p>
+
+                    <div class="quick-rate-box">
+                        <div class="quick-rate-header">
+                            <span class="rate-label">
+                                {% if item.in_watchlist and item.user_rating %}
+                                    ✓ İzlendi (Puanın: <strong class="gold-text">{{ item.user_rating }}/10</strong>)
+                                {% else %}
+                                    Puan Seç (1-10):
+                                {% endif %}
+                            </span>
+                            <button type="button"
+                                    class="card-watch-confirm-btn {{ 'is-watched-confirmed' if item.in_watchlist else '' }}">
+                                {% if item.in_watchlist and item.user_rating %}
+                                    ✓ İzlendi ({{ item.user_rating }}/10)
+                                {% else %}
+                                    🎬 İzledim
+                                {% endif %}
+                            </button>
+                        </div>
+                        <div class="rating-number-bar">
+                            {% for r in range(1, 11) %}
+                                <button type="button"
+                                        class="rate-num-btn {{ 'selected' if (item.in_watchlist and item.user_rating == r) else '' }}"
+                                        data-rating="{{ r }}"
+                                        title="{{ r }}/10 Puan Seç">
+                                    {{ r }}
+                                </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+
+    <div id="collectionFilterEmptyState" class="empty-filter-state" hidden>
+        <div class="empty-icon">🎬</div>
+        <h3>Bu filtrede yapım bulunamadı</h3>
+        <p>Diğer sekmelere geçiş yaparak evrendeki diğer yapımları görüntüleyebilirsin.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const root = document.getElementById("collectionDetailRoot");
+    const grid = document.getElementById("collectionItemsGrid");
+    const filterTabs = document.getElementById("collectionFilterTabs");
+    const emptyState = document.getElementById("collectionFilterEmptyState");
+    if (!root || !grid || !filterTabs) return;
+
+    const isSequential = root.dataset.isSequential === "true";
+    let activeFilter = "all";
+
+    function refreshCollectionState() {
+        const cards = Array.from(grid.querySelectorAll(".media-card"));
+        const total = cards.length;
+        let watchedCount = 0;
+        let movieCount = 0;
+        let tvCount = 0;
+        let firstUnwatchedCard = null;
+
+        cards.forEach((card) => {
+            const isWatched = card.classList.contains("is-in-watchlist");
+            const mType = card.dataset.mediaType;
+            if (isWatched) watchedCount += 1;
+            if (mType === "movie") movieCount += 1;
+            if (mType === "tv") tvCount += 1;
+
+            if (isSequential && !isWatched && !firstUnwatchedCard) {
+                firstUnwatchedCard = card;
+            }
+        });
+
+        const unwatchedCount = total - watchedCount;
+        const pct = total > 0 ? Math.round((watchedCount / total) * 100) : 0;
+
+        // 1. Progress Bar Güncelle
+        const pctEl = document.getElementById("colProgressPctText");
+        const fillEl = document.getElementById("colProgressBarFill");
+        const watchedEl = document.getElementById("colWatchedCountText");
+        const remEl = document.getElementById("colRemainingCountText");
+
+        if (pctEl) pctEl.textContent = `%${pct}`;
+        if (fillEl) fillEl.style.width = `${pct}%`;
+        if (watchedEl) watchedEl.textContent = String(watchedCount);
+        if (remEl) remEl.textContent = `${unwatchedCount} yapım kaldı`;
+
+        // 2. Sekme Sayaçlarını Güncelle
+        const countsMap = {
+            all: total,
+            unwatched: unwatchedCount,
+            watched: watchedCount,
+            movie: movieCount,
+            tv: tvCount,
+        };
+        Object.entries(countsMap).forEach(([key, val]) => {
+            const badge = filterTabs.querySelector(`[data-col-count="${key}"]`);
+            if (badge) badge.textContent = String(val);
+        });
+
+        // 3. "SIRADAKİ" (Up Next) Kart Vurgusu ve Üst Kutu Güncellemesi
+        if (isSequential) {
+            cards.forEach((card) => {
+                const isUpNext = firstUnwatchedCard === card;
+                card.classList.toggle("is-up-next-card", isUpNext);
+                const ribbon = card.querySelector(".up-next-card-ribbon");
+                if (ribbon) ribbon.hidden = !isUpNext;
+            });
+
+            const spotlightBar = document.getElementById("upNextSpotlightBar");
+            const completedBanner = document.getElementById("allCompletedBanner");
+
+            if (firstUnwatchedCard) {
+                if (spotlightBar) spotlightBar.hidden = false;
+                if (completedBanner) completedBanner.hidden = true;
+
+                const seqIdx = firstUnwatchedCard.dataset.seqIndex || "1";
+                const title = firstUnwatchedCard.dataset.title || "";
+                const year = firstUnwatchedCard.dataset.year || "";
+                const vote = firstUnwatchedCard.dataset.vote || "";
+                const mType = firstUnwatchedCard.dataset.mediaType || "movie";
+                const tmdbId = firstUnwatchedCard.dataset.tmdbId || "";
+                const poster = firstUnwatchedCard.dataset.poster || "/static/img/no-poster.svg";
+
+                const thumbEl = document.getElementById("upNextThumb");
+                const titleEl = document.getElementById("upNextTitleText");
+                const metaEl = document.getElementById("upNextMetaText");
+                const linkEl = document.getElementById("upNextDetailLink");
+
+                if (thumbEl) thumbEl.src = poster;
+                if (titleEl) titleEl.textContent = `#${seqIdx} • ${title}`;
+                if (metaEl) metaEl.textContent = `${year} • ⭐ ${vote} TMDB • ${mType === "tv" ? "Dizi" : "Film"}`;
+                if (linkEl) linkEl.href = `/detail/${mType}/${tmdbId}`;
+            } else if (total > 0) {
+                if (spotlightBar) spotlightBar.hidden = true;
+                if (completedBanner) completedBanner.hidden = false;
+            }
+        }
+
+        // 4. Aktif Sekme Filtresini Uygula
+        let visibleCount = 0;
+        cards.forEach((card) => {
+            const isWatched = card.classList.contains("is-in-watchlist");
+            const mType = card.dataset.mediaType;
+            let show = true;
+
+            if (activeFilter === "unwatched") show = !isWatched;
+            else if (activeFilter === "watched") show = isWatched;
+            else if (activeFilter === "movie") show = mType === "movie";
+            else if (activeFilter === "tv") show = mType === "tv";
+
+            card.style.display = show ? "" : "none";
+            if (show) visibleCount += 1;
+        });
+
+        if (emptyState) {
+            emptyState.hidden = visibleCount > 0;
+        }
+    }
+
+    filterTabs.addEventListener("click", (e) => {
+        const btn = e.target.closest(".col-filter-btn");
+        if (!btn) return;
+        activeFilter = btn.dataset.colFilter || "all";
+        filterTabs.querySelectorAll(".col-filter-btn").forEach((b) => b.classList.toggle("active", b === btn));
+        refreshCollectionState();
+    });
+
+    const viewSwitcher = document.getElementById("viewModeSwitcher");
+    if (viewSwitcher) {
+        viewSwitcher.addEventListener("click", (e) => {
+            const btn = e.target.closest(".view-mode-btn");
+            if (!btn) return;
+            const mode = btn.dataset.viewMode === "bar" ? "bar" : "grid";
+            grid.classList.toggle("view-grid", mode === "grid");
+            grid.classList.toggle("view-bar", mode === "bar");
+            viewSwitcher.querySelectorAll(".view-mode-btn").forEach((b) => b.classList.toggle("active", b === btn));
+        });
+    }
+
+    // Kart üzerindeki puanlama / izledim durum değişimlerini canlı izle
+    const observer = new MutationObserver(() => refreshCollectionState());
+    observer.observe(grid, { subtree: true, attributes: true, attributeFilter: ["class"] });
+
+    refreshCollectionState();
+});
+</script>
+{% endblock %}

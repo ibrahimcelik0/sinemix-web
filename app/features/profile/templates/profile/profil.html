@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ kullanici.ad }} - Profilim | SineMix{% endblock %}
+{% block title %}{{ kullanici.full_name }} ({{ kullanici.kullanici_adi }}) - Profilim | SineMix{% endblock %}
 
 {% block body_class %}page-home{% endblock %}
 
@@ -9,49 +9,68 @@
 {% endblock %}
 
 {% block content %}
-    <div class="platform-container">
+    <div class="platform-container"
+         id="userProfilePageContainer"
+         data-username="{{ kullanici.username }}"
+         data-server-episodes="{{ metrics.watched_episodes_count }}">
+
         <div class="profile-glass-dashboard">
+            <!-- 1. Kullanıcı Kimlik Kartı -->
             <div class="profile-header-card">
                 <div class="profile-avatar-large">{{ kullanici.avatar_initial }}</div>
 
                 <div class="profile-identity-info">
-                    <div class="api-status-pill">
-                        <span class="status-dot live"></span>
-                        Kişisel Veri Dosyası: <code>{{ kullanici.watchlist_dosyasi }}</code>
+                    <div class="profile-top-pills-row">
+                        <span class="api-status-pill">
+                            <span class="status-dot live"></span>
+                            🔐 Şifresiz OTP ile Doğrulanmış Hesap
+                        </span>
+                        <span class="profile-role-badge">{{ kullanici.role }}</span>
                     </div>
-                    <h1 class="profile-display-name">{{ kullanici.ad }}</h1>
+
+                    <h1 class="profile-display-name">{{ kullanici.full_name }}</h1>
+
                     <div class="profile-meta-badges">
                         <span class="profile-handle">{{ kullanici.kullanici_adi }}</span>
-                        <span class="profile-email-tag">✉️ {{ kullanici.email }}</span>
+                        <span class="profile-verified-email-badge" title="6 Haneli OTP ile Doğrulanmış E-Posta">
+                            ✓ Doğrulanmış E-Posta: <strong>{{ kullanici.email }}</strong>
+                        </span>
                         <span class="profile-date-tag">📅 Katılım: {{ kullanici.uyelik_tarihi }}</span>
                     </div>
+
                     <p class="profile-bio-text">{{ kullanici.bio }}</p>
                 </div>
 
                 <div class="profile-quick-actions">
                     <a href="{{ url_for('watchlist.watchlist_page') }}" class="btn-gold-action">📋 İzleme Listem</a>
-                    <a href="{{ url_for('recommendations.recommendations_page') }}" class="btn-secondary-action">✨ Önerilerim</a>
+                    <a href="{{ url_for('recommendations.recommendations_page') }}" class="btn-secondary-action">✨ Sana Özel Öneriler</a>
                     <a href="{{ url_for('auth.logout') }}" class="btn-danger-action">🚪 Çıkış Yap</a>
                 </div>
             </div>
 
+            <!-- 2. İzleme İstatistikleri (Film, Dizi & Bölüm, Ortalama Puan, Evren Rozeti) -->
             <section class="profile-summary-card">
-                <div class="stats-counters">
+                <div class="stats-counters profile-metrics-grid">
                     <div class="stat-item">
-                        <span class="stat-val">{{ stats.total }}</span>
-                        <span class="stat-lbl">İzlenen Yapım</span>
+                        <span class="stat-val">{{ metrics.movie_count }}</span>
+                        <span class="stat-lbl">🎬 İzlenen Film</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-val">{{ stats.movie_count }}</span>
-                        <span class="stat-lbl">Film</span>
+                        <span class="stat-val">
+                            {{ metrics.tv_count }} <small class="stat-sub-unit">Dizi</small>
+                            •
+                            <span id="profileWatchedEpisodesCount">{{ metrics.watched_episodes_count }}</span>
+                            <small class="stat-sub-unit">Bölüm</small>
+                        </span>
+                        <span class="stat-lbl">📺 İzlenen Dizi & Bölüm</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-val">{{ stats.tv_count }}</span>
-                        <span class="stat-lbl">Dizi</span>
+                        <span class="stat-val gold-text">⭐ {{ metrics.avg_rating }} <small class="stat-sub-unit">/ 10</small></span>
+                        <span class="stat-lbl">Verilen Ortalama Puan</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-val gold-text">⭐ {{ stats.avg_rating }}</span>
-                        <span class="stat-lbl">Ortalama Puanın</span>
+                        <span class="stat-val">{{ metrics.completed_universes_count }} <small class="stat-sub-unit">Tamamlanan</small></span>
+                        <span class="stat-lbl">🌌 Sinema Evreni Rozeti ({{ metrics.active_universes_count }} Aktif)</span>
                     </div>
                 </div>
 
@@ -79,6 +98,123 @@
                     </div>
                 {% endif %}
             </section>
+
+            <!-- 3. Tamamlanan & İlerlenen Sinema Evrenleri Rozetleri -->
+            <section class="profile-universes-section">
+                <div class="profile-section-header">
+                    <div>
+                        <h2 class="detail-section-title" style="margin-bottom: 4px;">
+                            🌌 Sinema Evrenleri & Stüdyo Rozetlerin
+                        </h2>
+                        <p class="tv-seasons-subtitle">
+                            İzlediğin yapımlara göre sinema evrenlerindeki ilerlemen ve kazandığın koleksiyon rozetleri.
+                        </p>
+                    </div>
+                    <a href="{{ url_for('catalog.collections') }}" class="btn-secondary-action">
+                        Tüm Evrenleri Keşfet →
+                    </a>
+                </div>
+
+                <div class="profile-universe-badges-grid">
+                    {% for badge in metrics.universe_badges %}
+                        <a href="{{ url_for('catalog.collection_detail', slug=badge.slug) }}"
+                           class="profile-universe-badge-card tone-{{ badge.status_tone }}"
+                           data-universe-slug="{{ badge.slug }}">
+                            <div class="u-badge-top">
+                                <span class="u-badge-icon">{{ badge.icon }}</span>
+                                <div class="u-badge-titles">
+                                    <h3 class="u-badge-name">{{ badge.title }}</h3>
+                                    <span class="u-badge-group">
+                                        {{ 'Sinema Evreni' if badge.group == 'universe' else 'Stüdyo Koleksiyonu' }}
+                                    </span>
+                                </div>
+                                <span class="u-badge-status-pill {{ badge.status_tone }}">
+                                    {{ badge.status_label }}
+                                </span>
+                            </div>
+
+                            <div class="u-badge-progress-track">
+                                <div class="u-badge-progress-fill" style="width: {{ badge.percent }}%;"></div>
+                            </div>
+
+                            <div class="u-badge-footer">
+                                <span><strong>{{ badge.watched_count }}</strong> / {{ badge.total_count }} Yapım İzlendi</span>
+                                <span class="u-badge-cta">Rehberi Aç →</span>
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- 4. Son İzlenen & Puanlanan Yapımlar -->
+            {% if recent_items %}
+                <section class="profile-recent-section">
+                    <div class="profile-section-header">
+                        <h2 class="detail-section-title" style="margin-bottom: 0;">
+                            🎬 Son İzlediğin & Puanladığın Yapımlar
+                        </h2>
+                        <a href="{{ url_for('watchlist.watchlist_page') }}" class="btn-secondary-action">
+                            Tüm Listemi Gör ({{ metrics.total_watched }}) →
+                        </a>
+                    </div>
+
+                    <div class="similar-items-grid">
+                        {% for item in recent_items %}
+                            <a href="{{ url_for('catalog.detail', media_type=item.media_type, tmdb_id=item.tmdb_id) }}"
+                               class="similar-glass-card">
+                                <div class="similar-poster-wrap">
+                                    <span class="media-badge-type {{ item.media_type }}">
+                                        {{ 'DİZİ' if item.media_type == 'tv' else 'FİLM' }}
+                                    </span>
+                                    <img src="{{ item.poster_path or '/static/img/no-poster.svg' }}"
+                                         alt="{{ item.title }}"
+                                         loading="lazy"
+                                         onerror="this.onerror=null;this.src='/static/img/no-poster.svg';">
+                                </div>
+                                <div class="similar-card-info">
+                                    <div class="similar-meta">
+                                        <span class="sim-rating">⭐ Puanın: {{ item.user_rating }}/10</span>
+                                    </div>
+                                    <h4 class="similar-title">{{ item.title }}</h4>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endif %}
         </div>
     </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const container = document.getElementById("userProfilePageContainer");
+    const epCountEl = document.getElementById("profileWatchedEpisodesCount");
+    if (!container || !epCountEl) return;
+
+    const username = (container.dataset.username || "").trim();
+    const serverEpisodes = parseInt(container.dataset.serverEpisodes || "0", 10);
+    if (!username) return;
+
+    // Dizi detay sayfalarında işaretlenen bireysel bölümleri (localStorage) kontrol et
+    const prefix = `sinemix_tv_eps_${username}_`;
+    let localMarkedEpisodes = 0;
+    try {
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(prefix)) {
+                const arr = JSON.parse(localStorage.getItem(key) || "[]");
+                if (Array.isArray(arr)) {
+                    localMarkedEpisodes += arr.length;
+                }
+            }
+        }
+    } catch (_) {}
+
+    if (localMarkedEpisodes > serverEpisodes) {
+        epCountEl.textContent = String(localMarkedEpisodes);
+    }
+});
+</script>
 {% endblock %}

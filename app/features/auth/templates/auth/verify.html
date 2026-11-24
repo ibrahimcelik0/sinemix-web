@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+
+{% block title %}6 Haneli Doğrulama Kodunu Gir - SineMix{% endblock %}
+
+{% block body_class %}page-home page-auth{% endblock %}
+
+{% block navbar %}
+    {% include "navbar.html" %}
+{% endblock %}
+
+{% block content %}
+    <div class="auth-page-wrapper">
+        <div class="auth-glass-card passwordless-auth-card"
+             id="verifyPageCard"
+             data-email="{{ email }}"
+             data-mode="{{ mode or 'login' }}"
+             data-next-url="{{ next_url or '' }}"
+             data-cooldown="{{ cooldown_seconds or 60 }}">
+
+            <div class="auth-brand-header">
+                <span class="auth-logo-badge">🔑 6 Haneli Tek Kullanımlık Kod (OTP)</span>
+                <h1 class="auth-title">Doğrulama Kodunu Gir</h1>
+                <p class="auth-subtitle">
+                    <strong>{{ email }}</strong> adresine gönderilen 6 haneli tek kullanımlık doğrulama kodunu aşağıdaki kutucuklara girin.
+                </p>
+            </div>
+
+            <!-- Canlı Durum / Uyarı Kutusu -->
+            <div id="verifyInlineAlert" class="auth-inline-alert" hidden></div>
+
+            <form id="otpVerifyForm"
+                  action="{{ url_for('auth.verify') }}"
+                  method="POST"
+                  class="auth-form">
+                <input type="hidden" name="next" value="{{ next_url or '' }}">
+                <input type="hidden" name="mode" value="{{ mode or 'login' }}">
+                <input type="hidden" id="verifyHiddenEmail" name="email" value="{{ email }}">
+                <input type="hidden" id="otpCombinedCodeInput" name="otp_code" value="">
+
+                <div class="otp-target-email-pill">
+                    <span>✉️ Alıcı E-Posta:</span>
+                    <strong>{{ email }}</strong>
+                    <a href="{{ url_for('auth.register', next=next_url) if mode == 'register' else url_for('auth.login', next=next_url, email=email) }}"
+                       class="otp-change-email-btn">
+                        ← Değiştir
+                    </a>
+                </div>
+
+                <div class="auth-form-group">
+                    <label>6 Haneli Doğrulama Kodu</label>
+                    <div class="otp-six-boxes-grid" id="otpSixBoxesGrid" role="group" aria-label="6 Haneli Doğrulama Kodu">
+                        <input type="text" class="otp-digit-box" maxlength="1" inputmode="numeric" pattern="[0-9]" data-box-idx="0" aria-label="1. Hane" autocomplete="one-time-code" autofocus>
+                        <input type="text" class="otp-digit-box" maxlength="1" inputmode="numeric" pattern="[0-9]" data-box-idx="1" aria-label="2. Hane">
+                        <input type="text" class="otp-digit-box" maxlength="1" inputmode="numeric" pattern="[0-9]" data-box-idx="2" aria-label="3. Hane">
+                        <input type="text" class="otp-digit-box" maxlength="1" inputmode="numeric" pattern="[0-9]" data-box-idx="3" aria-label="4. Hane">
+                        <input type="text" class="otp-digit-box" maxlength="1" inputmode="numeric" pattern="[0-9]" data-box-idx="4" aria-label="5. Hane">
+                        <input type="text" class="otp-digit-box" maxlength="1" inputmode="numeric" pattern="[0-9]" data-box-idx="5" aria-label="6. Hane">
+                    </div>
+
+                    <div class="otp-security-meta">
+                        <span id="otpExpiryHint">⏱️ 5 dakika geçerli • Tek kullanımlık</span>
+                        <span id="otpAttemptsBadge" class="otp-attempts-pill {{ 'danger' if (attempts_remaining or 3) < 3 else '' }}">
+                            🔒 Kalan hak: {{ attempts_remaining if attempts_remaining is defined else 3 }}
+                        </span>
+                    </div>
+                </div>
+
+                <button type="submit" id="verifyOtpSubmitBtn" class="auth-submit-btn">
+                    ✓ Kodu Doğrula ve {{ 'Kaydı Tamamla' if mode == 'register' else 'Oturum Aç' }}
+                </button>
+
+                <div class="otp-resend-bar">
+                    <button type="button" id="resendOtpBtn" class="otp-resend-btn" disabled>
+                        🔄 Tekrar Kod Gönder (<span id="otpCountdownSec">{{ cooldown_seconds or 60 }}</span>s)
+                    </button>
+                </div>
+            </form>
+
+            <div class="auth-passwordless-footer">
+                <span>🛡️ %100 Şifresiz (Passwordless) • <code>secrets</code> 6 Haneli OTP Koruması</span>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const card = document.getElementById("verifyPageCard");
+    const verifyForm = document.getElementById("otpVerifyForm");
+    const alertBox = document.getElementById("verifyInlineAlert");
+    const otpCombinedCodeInput = document.getElementById("otpCombinedCodeInput");
+    const otpBoxes = Array.from(document.querySelectorAll(".otp-digit-box"));
+    const otpAttemptsBadge = document.getElementById("otpAttemptsBadge");
+    const verifySubmitBtn = document.getElementById("verifyOtpSubmitBtn");
+    const resendOtpBtn = document.getElementById("resendOtpBtn");
+    if (!card || !verifyForm) return;
+
+    const email = (card.dataset.email || "").trim().toLowerCase();
+    const mode = (card.dataset.mode || "login").trim();
+    const nextUrl = card.dataset.nextUrl || "";
+    const initialCooldown = parseInt(card.dataset.cooldown || "60", 10);
+
+    let countdownTimer = null;
+    let remainingCooldown = 0;
+
+    function showAlert(message, tone = "error") {
+        if (!alertBox) return;
+        alertBox.textContent = message;
+        alertBox.className = `auth-inline-alert tone-${tone}`;
+        alertBox.hidden = false;
+    }
+
+    function hideAlert() {
+        if (alertBox) alertBox.hidden = true;
+    }
+
+    function syncCombinedOtpValue() {
+        const combined = otpBoxes.map((b) => (b.value || "").replace(/[^0-9]/g, "")).join("");
+        if (otpCombinedCodeInput) otpCombinedCodeInput.value = combined;
+        return combined;
+    }
+
+    function clearOtpBoxes() {
+        otpBoxes.forEach((b) => {
+            b.value = "";
+            b.classList.remove("filled");
+        });
+        syncCombinedOtpValue();
+    }
+
+    otpBoxes.forEach((box, idx) => {
+        box.addEventListener("input", () => {
+            const digit = (box.value || "").replace(/[^0-9]/g, "").slice(-1);
+            box.value = digit;
+            box.classList.toggle("filled", Boolean(digit));
+            syncCombinedOtpValue();
+
+            if (digit && idx < otpBoxes.length - 1) {
+                otpBoxes[idx + 1].focus();
+                otpBoxes[idx + 1].select();
+            }
+        });
+
+        box.addEventListener("keydown", (e) => {
+            if (e.key === "Backspace" && !box.value && idx > 0) {
+                otpBoxes[idx - 1].value = "";
+                otpBoxes[idx - 1].classList.remove("filled");
+                otpBoxes[idx - 1].focus();
+                syncCombinedOtpValue();
+                e.preventDefault();
+            } else if (e.key === "ArrowLeft" && idx > 0) {
+                otpBoxes[idx - 1].focus();
+                e.preventDefault();
+            } else if (e.key === "ArrowRight" && idx < otpBoxes.length - 1) {
+                otpBoxes[idx + 1].focus();
+                e.preventDefault();
+            }
+        });
+
+        box.addEventListener("paste", (e) => {
+            e.preventDefault();
+            const pasted = (e.clipboardData || window.clipboardData).getData("text") || "";
+            const digits = pasted.replace(/[^0-9]/g, "").slice(0, 6).split("");
+            if (digits.length === 0) return;
+            otpBoxes.forEach((b, i) => {
+                b.value = digits[i] || "";
+                b.classList.toggle("filled", Boolean(digits[i]));
+            });
+            syncCombinedOtpValue();
+            const focusIdx = Math.min(digits.length, otpBoxes.length - 1);
+            otpBoxes[focusIdx].focus();
+        });
+    });
+
+    function startCooldownTimer(seconds) {
+        clearInterval(countdownTimer);
+        remainingCooldown = Math.max(0, parseInt(seconds || 0, 10));
+
+        function renderTick() {
+            if (!resendOtpBtn) return;
+            if (remainingCooldown > 0) {
+                resendOtpBtn.disabled = true;
+                resendOtpBtn.innerHTML = `🔄 Tekrar Kod Gönder (<span id="otpCountdownSec">${remainingCooldown}</span>s)`;
+            } else {
+                resendOtpBtn.disabled = false;
+                resendOtpBtn.textContent = "🔄 Yeni Doğrulama Kodu Gönder";
+                clearInterval(countdownTimer);
+            }
+        }
+
+        renderTick();
+        if (remainingCooldown > 0) {
+            countdownTimer = setInterval(() => {
+                remainingCooldown -= 1;
+                renderTick();
+            }, 1000);
+        }
+    }
+
+    if (resendOtpBtn) {
+        resendOtpBtn.addEventListener("click", async () => {
+            if (resendOtpBtn.disabled) return;
+            hideAlert();
+
+            resendOtpBtn.disabled = true;
+            resendOtpBtn.textContent = "⏳ Gönderiliyor...";
+
+            try {
+                const res = await fetch("/auth/request-otp", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        mode: mode,
+                        email: email,
+                        next: nextUrl,
+                    }),
+                });
+                const data = await res.json();
+
+                if (!res.ok || !data.ok) {
+                    if (data.cooldown_remaining) {
+                        startCooldownTimer(data.cooldown_remaining);
+                    } else {
+                        resendOtpBtn.disabled = false;
+                        resendOtpBtn.textContent = "🔄 Yeni Doğrulama Kodu Gönder";
+                    }
+                    showAlert(data.message || "Yeni kod gönderilemedi.", "warning");
+                    return;
+                }
+
+                showAlert("Yeni 6 haneli doğrulama kodunuz e-posta adresinize gönderildi.", "success");
+                if (otpAttemptsBadge) {
+                    otpAttemptsBadge.textContent = "🔒 Kalan hak: 3";
+                    otpAttemptsBadge.classList.remove("danger");
+                }
+                clearOtpBoxes();
+                if (otpBoxes[0]) otpBoxes[0].focus();
+                startCooldownTimer(data.cooldown_seconds || 60);
+            } catch (err) {
+                resendOtpBtn.disabled = false;
+                resendOtpBtn.textContent = "🔄 Yeni Doğrulama Kodu Gönder";
+                showAlert("Bağlantı hatası oluştu. Lütfen tekrar deneyin.", "error");
+            }
+        });
+    }
+
+    verifyForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        hideAlert();
+
+        const code = syncCombinedOtpValue();
+        if (code.length !== 6) {
+            showAlert("Lütfen 6 kutucuğun tamamına e-postanıza gelen 6 haneli kodu girin.", "error");
+            const emptyBox = otpBoxes.find((b) => !b.value);
+            if (emptyBox) emptyBox.focus();
+            return;
+        }
+
+        let guestWatchlist = [];
+        try {
+            const rawGuest = sessionStorage.getItem("sinemix_guest_watchlist");
+            if (rawGuest) {
+                const parsed = JSON.parse(rawGuest);
+                if (Array.isArray(parsed)) guestWatchlist = parsed;
+            }
+        } catch (_) {}
+
+        if (verifySubmitBtn) {
+            verifySubmitBtn.disabled = true;
+            verifySubmitBtn.textContent = "⏳ Doğrulanıyor...";
+        }
+
+        try {
+            const res = await fetch("/auth/verify-otp", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email: email,
+                    code: code,
+                    next: nextUrl,
+                    guest_watchlist: guestWatchlist,
+                }),
+            });
+            const data = await res.json();
+
+            if (!res.ok || !data.ok) {
+                if (typeof data.attempts_remaining === "number" && otpAttemptsBadge) {
+                    otpAttemptsBadge.textContent = `🔒 Kalan hak: ${data.attempts_remaining}`;
+                    otpAttemptsBadge.classList.add("danger");
+                }
+
+                showAlert(data.message || "Doğrulama kodu hatalı.", "error");
+
+                if (
+                    data.status === "max_attempts_exceeded" ||
+                    data.status === "expired" ||
+                    data.status === "no_active_code"
+                ) {
+                    setTimeout(() => {
+                        window.location.href = mode === "register" ? "/auth/register" : "/auth/login";
+                    }, 1800);
+                }
+                return;
+            }
+
+            try {
+                sessionStorage.removeItem("sinemix_guest_watchlist");
+            } catch (_) {}
+
+            showAlert(data.message || "Doğrulama başarılı! Yönlendiriliyorsunuz...", "success");
+            window.location.href = data.redirect_url || "/";
+        } catch (err) {
+            verifyForm.submit();
+        } finally {
+            if (verifySubmitBtn) {
+                verifySubmitBtn.disabled = false;
+                verifySubmitBtn.textContent = mode === "register" ? "✓ Kodu Doğrula ve Kaydı Tamamla" : "✓ Kodu Doğrula ve Oturum Aç";
+            }
+        }
+    });
+
+    startCooldownTimer(initialCooldown);
+});
+</script>
+{% endblock %}

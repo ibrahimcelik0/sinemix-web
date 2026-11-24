@@ -139,16 +139,22 @@
 
                             <div class="quick-rate-box">
                                 <div class="quick-rate-header">
-                                    <span class="rate-label">✓ İzledim:</span>
-                                    <button type="button" class="remove-watchlist-btn" title="Listeden Çıkar">
-                                        🗑️ Çıkar
-                                    </button>
+                                    <span class="rate-label">✓ İzlendi (Puanın: <strong class="gold-text">{{ item.user_rating }}/10</strong>)</span>
+                                    <div style="display: inline-flex; align-items: center; gap: 6px;">
+                                        <button type="button" class="card-watch-confirm-btn is-watched-confirmed">
+                                            ✓ İzlendi ({{ item.user_rating }}/10)
+                                        </button>
+                                        <button type="button" class="remove-watchlist-btn" title="Listeden Çıkar">
+                                            🗑️ Çıkar
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="rating-number-bar">
                                     {% for r in range(1, 11) %}
                                         <button type="button"
-                                                class="rate-num-btn {{ 'selected' if item.user_rating == r else '' }} {{ 'low-rate' if r < 5 else ('high-rate' if r >= 8 else '') }}"
-                                                data-rating="{{ r }}">
+                                                class="rate-num-btn {{ 'selected' if item.user_rating == r else '' }}"
+                                                data-rating="{{ r }}"
+                                                title="{{ r }}/10 Puan Seç">
                                             {{ r }}
                                         </button>
                                     {% endfor %}

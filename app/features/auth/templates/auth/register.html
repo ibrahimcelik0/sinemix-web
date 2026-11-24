@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Kayıt Ol - SineMix{% endblock %}
+{% block title %}Kayıt Ol (Şifresiz OTP) - SineMix{% endblock %}
 
 {% block body_class %}page-home page-auth{% endblock %}
 
@@ -10,65 +10,192 @@
 
 {% block content %}
     <div class="auth-page-wrapper">
-        <div class="auth-glass-card">
+        <div class="auth-glass-card passwordless-auth-card"
+             id="registerPageCard"
+             data-next-url="{{ next_url or '' }}">
+
             <div class="auth-brand-header">
-                <span class="auth-logo-badge">🎬 SineMix</span>
+                <span class="auth-logo-badge">✨ %100 Şifresiz Üyelik</span>
                 <h1 class="auth-title">Yeni Hesap Oluştur</h1>
-                <p class="auth-subtitle">İzleme listeni ve verdiğin puanları kalıcı olarak kendi hesabında tutmak için ücretsiz kayıt ol.</p>
+                <p class="auth-subtitle">
+                    Parola belirlemene gerek yok. Bilgilerini doldur, e-postana göndereceğimiz <strong>6 haneli tek kullanımlık doğrulama kodunu</strong> girerek hesabını oluştur.
+                </p>
             </div>
 
-            <form action="{{ url_for('auth.register') }}" method="POST" class="auth-form">
+            <!-- Canlı Uyarı Kutusu -->
+            <div id="registerInlineAlert" class="auth-inline-alert" hidden></div>
+
+            <form id="registerOtpRequestForm"
+                  action="{{ url_for('auth.register') }}"
+                  method="POST"
+                  class="auth-form">
                 <input type="hidden" name="next" value="{{ next_url or '' }}">
 
-                <div class="auth-form-group">
-                    <label for="usernameInput">Kullanıcı Adı</label>
-                    <input type="text"
-                           id="usernameInput"
-                           name="username"
-                           value="{{ username or '' }}"
-                           placeholder="Örn: sinemasever"
-                           minlength="3"
-                           required
-                           autofocus>
+                <div class="auth-name-grid">
+                    <div class="auth-form-group">
+                        <label for="regFirstNameInput">İsim</label>
+                        <input type="text"
+                               id="regFirstNameInput"
+                               name="first_name"
+                               value="{{ first_name or '' }}"
+                               placeholder="Örn: İbrahim"
+                               minlength="2"
+                               required
+                               autofocus>
+                    </div>
+
+                    <div class="auth-form-group">
+                        <label for="regLastNameInput">Soyisim</label>
+                        <input type="text"
+                               id="regLastNameInput"
+                               name="last_name"
+                               value="{{ last_name or '' }}"
+                               placeholder="Örn: Çelik"
+                               minlength="2"
+                               required>
+                    </div>
                 </div>
 
                 <div class="auth-form-group">
-                    <label for="emailInput">E-posta Adresi</label>
+                    <label for="regUsernameInput">Kullanıcı Adı <small class="field-hint-inline">(otomatik küçük harf, boşluksuz)</small></label>
+                    <div class="username-input-wrap">
+                        <span class="username-at-prefix">@</span>
+                        <input type="text"
+                               id="regUsernameInput"
+                               name="username"
+                               value="{{ username or '' }}"
+                               placeholder="kullaniciadi"
+                               minlength="3"
+                               maxlength="28"
+                               autocomplete="username"
+                               required>
+                    </div>
+                </div>
+
+                <div class="auth-form-group">
+                    <label for="regEmailInput">E-Posta Adresi</label>
                     <input type="email"
-                           id="emailInput"
+                           id="regEmailInput"
                            name="email"
                            value="{{ email or '' }}"
-                           placeholder="ornek@eposta.com"
+                           placeholder="ornek@gmail.com"
+                           autocomplete="email"
                            required>
                 </div>
 
-                <div class="auth-form-group">
-                    <label for="regPasswordInput">Şifre (En az 6 karakter)</label>
-                    <input type="password"
-                           id="regPasswordInput"
-                           name="password"
-                           placeholder="••••••••"
-                           minlength="6"
-                           required>
-                </div>
-
-                <div class="auth-form-group">
-                    <label for="regPasswordConfirmInput">Şifre Tekrar</label>
-                    <input type="password"
-                           id="regPasswordConfirmInput"
-                           name="password_confirm"
-                           placeholder="••••••••"
-                           minlength="6"
-                           required>
-                </div>
-
-                <button type="submit" class="auth-submit-btn">✨ Hesabımı Oluştur</button>
+                <button type="submit" id="registerRequestOtpBtn" class="auth-submit-btn">
+                    ✨ Doğrulama Kodu Gönder
+                </button>
             </form>
 
             <p class="auth-switch-text">
-                Zaten bir hesabın var mı?
-                <a href="{{ url_for('auth.login', next=next_url) }}">Oturum Aç</a>
+                Zaten bir SineMix hesabın var mı?
+                <a href="{{ url_for('auth.login', next=next_url) if next_url else url_for('auth.login') }}">Oturum Aç</a>
             </p>
+
+            <div class="auth-passwordless-footer">
+                <span>🛡️ %100 Şifresiz (Passwordless) • <code>secrets</code> 6 Haneli OTP Koruması</span>
+            </div>
         </div>
     </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const card = document.getElementById("registerPageCard");
+    const form = document.getElementById("registerOtpRequestForm");
+    const firstNameInput = document.getElementById("regFirstNameInput");
+    const lastNameInput = document.getElementById("regLastNameInput");
+    const usernameInput = document.getElementById("regUsernameInput");
+    const emailInput = document.getElementById("regEmailInput");
+    const submitBtn = document.getElementById("registerRequestOtpBtn");
+    const alertBox = document.getElementById("registerInlineAlert");
+    if (!form || !card) return;
+
+    const nextUrl = card.dataset.nextUrl || "";
+
+    function sanitizeUsernameLive(val) {
+        const trMap = { "ç": "c", "ğ": "g", "ı": "i", "ö": "o", "ş": "s", "ü": "u", "Ç": "c", "Ğ": "g", "İ": "i", "Ö": "o", "Ş": "s", "Ü": "u" };
+        const replaced = (val || "").replace(/[çğıöşüÇĞİÖŞÜ]/g, (m) => trMap[m] || m);
+        return replaced.toLowerCase().replace(/[^a-z0-9_.]/g, "");
+    }
+
+    if (usernameInput) {
+        usernameInput.addEventListener("input", () => {
+            const clean = sanitizeUsernameLive(usernameInput.value);
+            if (usernameInput.value !== clean) {
+                usernameInput.value = clean;
+            }
+        });
+    }
+
+    function showAlert(message, tone = "error") {
+        if (!alertBox) return;
+        alertBox.textContent = message;
+        alertBox.className = `auth-inline-alert tone-${tone}`;
+        alertBox.hidden = false;
+    }
+
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (alertBox) alertBox.hidden = true;
+
+        const firstName = (firstNameInput?.value || "").trim();
+        const lastName = (lastNameInput?.value || "").trim();
+        const username = sanitizeUsernameLive(usernameInput?.value || "");
+        const email = (emailInput?.value || "").trim().toLowerCase();
+
+        if (usernameInput) usernameInput.value = username;
+
+        if (!firstName || !lastName || !username || !email) {
+            showAlert("Lütfen İsim, Soyisim, Kullanıcı Adı ve E-Posta alanlarını eksiksiz doldurun.", "error");
+            return;
+        }
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = "⏳ Kontrol Ediliyor...";
+        }
+
+        try {
+            const res = await fetch("/auth/request-otp", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    mode: "register",
+                    first_name: firstName,
+                    last_name: lastName,
+                    username: username,
+                    email: email,
+                    next: nextUrl,
+                }),
+            });
+            const data = await res.json();
+
+            if (data.status === "cooldown" && data.verify_url) {
+                window.location.href = data.verify_url;
+                return;
+            }
+
+            if (!res.ok || !data.ok) {
+                if (data.status === "username_taken" && usernameInput) {
+                    usernameInput.focus();
+                }
+                showAlert(data.message || "Doğrulama kodu gönderilemedi.", "error");
+                return;
+            }
+
+            window.location.href = data.verify_url || "/auth/verify";
+        } catch (err) {
+            form.submit();
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "✨ Doğrulama Kodu Gönder";
+            }
+        }
+    });
+});
+</script>
 {% endblock %}

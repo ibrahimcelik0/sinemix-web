@@ -163,14 +163,17 @@
 
                         <div class="quick-rate-box">
                             <div class="quick-rate-header">
-                                <span class="rate-label">İzledim (Puanla):</span>
+                                <span class="rate-label">Puan Seç (1-10):</span>
+                                <button type="button" class="card-watch-confirm-btn">
+                                    🎬 İzledim
+                                </button>
                             </div>
                             <div class="rating-number-bar">
                                 {% for r in range(1, 11) %}
                                     <button type="button"
-                                            class="rate-num-btn {{ 'low-rate' if r < 5 else ('high-rate' if r >= 8 else '') }}"
+                                            class="rate-num-btn"
                                             data-rating="{{ r }}"
-                                            title="İzledim ({{ r }}/10 Puan)">
+                                            title="{{ r }}/10 Puan Seç">
                                         {{ r }}
                                     </button>
                                 {% endfor %}
