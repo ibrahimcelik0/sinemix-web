@@ -27,7 +27,6 @@
             <div class="detail-hero-content">
                 <div class="detail-breadcrumb-row">
                     <a href="{{ url_for('catalog.discover') }}" class="back-home-pill">← Keşfet'e Dön</a>
-                    <span class="detail-brand-tag">🎬 SineMix Sinema & Dizi Künyesi</span>
                 </div>
 
                 <div class="detail-hero-grid">
@@ -38,9 +37,9 @@
                                 {{ 'DİZİ' if item.media_type == 'tv' else 'FİLM' }}
                             </span>
                             <div id="detailWatchedRibbon" class="watched-ribbon" {{ '' if item.in_watchlist else 'hidden' }}>
-                                ✓ Listende: <strong id="detailUserRatingVal">{{ item.user_rating }}</strong>/10
+                                ✓ İzlendi (<strong id="detailUserRatingVal">{{ item.user_rating }}</strong>/10)
                             </div>
-                            <img src="{{ item.poster_path }}" alt="{{ item.title }}">
+                            <img src="{{ item.poster_path or '/static/img/no-poster.svg' }}" alt="{{ item.title }}" onerror="this.onerror=null;this.src='/static/img/no-poster.svg';">
                         </div>
                     </div>
 
@@ -82,9 +81,9 @@
                                     <div class="watchlist-status-header">
                                         <span id="detailRatePromptLabel" class="action-group-label">
                                             {% if item.in_watchlist %}
-                                                ✓ İzleme Listende (Mevcut Puanın: <strong class="gold-text" id="detailInlineRating">{{ item.user_rating }}/10</strong>) — Puanı Güncelle:
+                                                ✓ İzlendi (Puanın: <strong class="gold-text" id="detailInlineRating">{{ item.user_rating }}/10</strong>) — Puanı Güncelle:
                                             {% else %}
-                                                Puan Seç (1-10) ve İzleme Listene Ekle:
+                                                Puan Seç (1-10) ve İzledim Olarak İşaretle:
                                             {% endif %}
                                         </span>
                                     </div>
@@ -101,7 +100,7 @@
                                         </div>
 
                                         <button type="button" id="detailSaveWatchlistBtn" class="btn-gold-action">
-                                            {{ '💾 Puanı Güncelle' if item.in_watchlist else '➕ İzleme Listeme Ekle' }}
+                                            {{ '✓ İzlendi (Güncelle)' if item.in_watchlist else '✓ İzledim' }}
                                         </button>
 
                                         <button type="button"
@@ -212,7 +211,7 @@
                         {% for actor in item.cast %}
                             <div class="cast-glass-card">
                                 <div class="cast-avatar-wrap">
-                                    <img src="{{ actor.profile_path }}" alt="{{ actor.name }}" loading="lazy">
+                                    <img src="{{ actor.profile_path or '/static/img/no-avatar.svg' }}" alt="{{ actor.name }}" loading="lazy" onerror="this.onerror=null;this.src='/static/img/no-avatar.svg';">
                                 </div>
                                 <div class="cast-info">
                                     <strong class="cast-real-name">{{ actor.name }}</strong>
@@ -235,7 +234,7 @@
                                     <span class="media-badge-type {{ sim.media_type }}">
                                         {{ 'DİZİ' if sim.media_type == 'tv' else 'FİLM' }}
                                     </span>
-                                    <img src="{{ sim.poster_path }}" alt="{{ sim.title }}" loading="lazy">
+                                    <img src="{{ sim.poster_path or '/static/img/no-poster.svg' }}" alt="{{ sim.title }}" loading="lazy" onerror="this.onerror=null;this.src='/static/img/no-poster.svg';">
                                 </div>
                                 <div class="similar-card-info">
                                     <div class="similar-meta">

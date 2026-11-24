@@ -1,4 +1,5 @@
-// SineMix - Oturum Durumuna Göre (Misafir Bellek İçi vs. Oturum Açmış Kalıcı JSON) İstemci Mantığı
+// SineMix - Klasik Posterli Kart (Grid) + Seçilebilir Çubuk (Bar) Görünümü,
+// Sayfa Başına 20 Yapım Numaralı Sayfalama ve Film/Dizi Talep Sistemi
 document.addEventListener("DOMContentLoaded", () => {
     const mainNavbar = document.getElementById("mainNavbar");
     const isAuthenticated = mainNavbar?.dataset.authenticated === "true";
@@ -6,11 +7,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const toastEl = document.getElementById("toastNotification");
     const navWatchlistBadge = document.getElementById("navWatchlistBadge");
     const guestTempCountBadge = document.getElementById("guestTempCountBadge");
-    const navbarSearchInput = document.getElementById("filmSearchInput");
     const searchClearBtn = document.getElementById("searchClearBtn");
     const clearWatchlistBtn = document.getElementById("clearWatchlistBtn");
 
-    // Misafir Modu: Yalnızca o anki sayfa yaşam döngüsünde (JS belleğinde) tutulur; F5 atıldığında sıfırlanır.
+    // Misafir Modu: Yalnızca o anki sayfa yaşam döngüsünde (JS belleğinde) tutulur
     let guestWatchlist = [];
 
     let toastTimer = null;
@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
         clearTimeout(toastTimer);
         toastTimer = setTimeout(() => {
             toastEl.hidden = true;
-        }, 3000);
+        }, 3200);
     }
 
     function updateCounters(newCount) {
@@ -161,14 +161,44 @@ document.addEventListener("DOMContentLoaded", () => {
             if (event.target === whyModal) closeWhyRecommendedModal();
         });
     }
-    document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape" && whyModal && !whyModal.hidden) {
-            closeWhyRecommendedModal();
-        }
-    });
 
     // =========================================================================
-    // 2. Misafir Modu Bellek İçi (Stateless) Öneri Hesaplama ve Kart Çizimi
+    // 2. Görünüm Seçici: Klasik Posterli Kart (Grid) vs. Seçilebilir Çubuk (Bar)
+    // =========================================================================
+    const viewModeSwitcher = document.getElementById("viewModeSwitcher");
+    const activeGrid =
+        document.getElementById("discoverGrid") ||
+        document.getElementById("watchlistGrid") ||
+        document.getElementById("recommendationsGrid");
+    const liveRecsGrid = document.getElementById("liveRecommendationsGrid");
+
+    let currentViewMode = "grid"; // Varsayılan: Klasik Posterli Kart (Grid)
+
+    function applyViewMode(mode) {
+        currentViewMode = mode === "bar" ? "bar" : "grid";
+        [activeGrid, liveRecsGrid].forEach((grid) => {
+            if (!grid) return;
+            grid.classList.toggle("view-grid", currentViewMode === "grid");
+            grid.classList.toggle("view-bar", currentViewMode === "bar");
+        });
+
+        if (viewModeSwitcher) {
+            viewModeSwitcher.querySelectorAll(".view-mode-btn").forEach((btn) => {
+                btn.classList.toggle("active", btn.dataset.viewMode === currentViewMode);
+            });
+        }
+    }
+
+    if (viewModeSwitcher) {
+        viewModeSwitcher.querySelectorAll(".view-mode-btn").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                applyViewMode(btn.dataset.viewMode || "grid");
+            });
+        });
+    }
+
+    // =========================================================================
+    // 3. Misafir Modu Bellek İçi Öneri Hesaplama ve Kart Çizimi
     // =========================================================================
     function upsertGuestWatchlistItem(itemObj) {
         const idx = guestWatchlist.findIndex(
@@ -227,14 +257,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const matchedSet = new Set(item.matched_genres || []);
         const genreTagsHtml = (item.genres || [])
-            .slice(0, 3)
+            .slice(0, 2)
             .map((g) => `<span class="genre-tag ${matchedSet.has(g) ? "matched" : ""}">${escapeHtml(g)}</span>`)
             .join("");
 
         let ratingBtnsHtml = "";
         for (let r = 1; r <= 10; r++) {
             const toneCls = r < 5 ? "low-rate" : r >= 8 ? "high-rate" : "";
-            ratingBtnsHtml += `<button type="button" class="rate-num-btn ${toneCls}" data-rating="${r}">${r}</button>`;
+            ratingBtnsHtml += `<button type="button" class="rate-num-btn ${toneCls}" data-rating="${r}" title="İzledim (${r}/10)">${r}</button>`;
         }
 
         const badgeTone = item.match_score >= 85 ? "high-match" : item.match_score >= 70 ? "mid-match" : "";
@@ -248,15 +278,16 @@ document.addEventListener("DOMContentLoaded", () => {
                     %${item.match_score} Eşleşme
                 </div>
                 <div class="watched-ribbon" hidden>
-                    ✓ Listene Eklendi: <strong class="user-rating-val"></strong>/10
+                    ✓ İzlendi (<strong class="user-rating-val"></strong>/10)
                 </div>
                 <a href="/detail/${escapeHtml(item.media_type)}/${item.tmdb_id}" class="poster-link">
-                    <img src="${escapeHtml(item.poster_path)}" alt="${escapeHtml(item.title)}" loading="lazy">
+                    <img src="${escapeHtml(item.poster_path || '/static/img/no-poster.svg')}" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.onerror=null;this.src='/static/img/no-poster.svg';">
                 </a>
             </div>
             <div class="media-card-body">
                 <div class="media-meta-row">
-                    <span class="tmdb-score">⭐ ${escapeHtml(String(item.vote_average))} <small>(${escapeHtml(String(item.release_year || ""))})</small></span>
+                    <span class="tmdb-score">⭐ ${escapeHtml(String(item.vote_average))}</span>
+                    <span class="card-year-inline">${escapeHtml(String(item.release_year || ""))}</span>
                     <div class="genre-tags">${genreTagsHtml}</div>
                 </div>
                 <h3 class="media-title">
@@ -270,7 +301,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 </button>
                 <div class="quick-rate-box">
                     <div class="quick-rate-header">
-                        <span class="rate-label">İzledin mi? Puan Ver & Listeye Ekle:</span>
+                        <span class="rate-label">İzledim (Puanla):</span>
                     </div>
                     <div class="rating-number-bar">${ratingBtnsHtml}</div>
                 </div>
@@ -291,22 +322,20 @@ document.addEventListener("DOMContentLoaded", () => {
             const recs = data.recommendations || [];
             const profile = data.profile || {};
 
-            // A) Keşfet sayfasındaki canlı öneri paneli
             const liveSection = document.getElementById("liveGuestRecommendationsSection");
-            const liveGrid = document.getElementById("liveRecommendationsGrid");
             const liveChips = document.getElementById("liveProfileChips");
 
-            if (liveSection && liveGrid) {
+            if (liveSection && liveRecsGrid) {
                 if (recs.length === 0) {
                     liveSection.hidden = true;
-                    liveGrid.innerHTML = "";
+                    liveRecsGrid.innerHTML = "";
                 } else {
                     liveSection.hidden = false;
-                    liveGrid.innerHTML = "";
-                    recs.slice(0, 6).forEach((item) => {
-                        liveGrid.appendChild(buildRecommendationCardElement(item));
+                    liveRecsGrid.innerHTML = "";
+                    recs.slice(0, 5).forEach((item) => {
+                        liveRecsGrid.appendChild(buildRecommendationCardElement(item));
                     });
-                    bindMediaCardEvents(liveGrid);
+                    bindMediaCardEvents(liveRecsGrid);
 
                     if (liveChips) {
                         liveChips.innerHTML = (profile.favorite_genres || [])
@@ -321,7 +350,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             }
 
-            // B) /oneriler sayfasındaysak ana öneri gridini güncelle
             const recsGrid = document.getElementById("recommendationsGrid");
             const recsEmptyBox = document.getElementById("recsEmptyStateBox");
             const recsProfileCard = document.getElementById("recsProfileSummaryCard");
@@ -357,6 +385,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         .join("");
                 }
 
+                currentPage = 1;
                 updateSegmentedCounts();
                 applySegmentedTabFilter();
             }
@@ -366,7 +395,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // =========================================================================
-    // 3. Kart Etkileşimleri (1-10 Puan Verme, Silme, Neden Önerildi Modal)
+    // 4. Kart Etkileşimleri (1-10 Puan Verme, Silme, Neden Önerildi Modal)
     // =========================================================================
     function bindMediaCardEvents(rootContainer) {
         if (!rootContainer) return;
@@ -389,7 +418,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 keywords = JSON.parse(card.dataset.keywords || "[]");
             } catch (_) {}
 
-            // "✨ Neden Önerildi?" Butonu
             const whyBtn = card.querySelector(".why-modal-trigger-btn");
             if (whyBtn) {
                 whyBtn.addEventListener("click", () => {
@@ -397,7 +425,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
             }
 
-            // 1-10 Puan Butonları
             card.querySelectorAll(".rate-num-btn").forEach((btn) => {
                 btn.addEventListener("click", async () => {
                     const rating = parseInt(btn.dataset.rating || "8", 10);
@@ -413,9 +440,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (ratingValEl) ratingValEl.textContent = String(rating);
 
                     const rateLabel = card.querySelector(".rate-label");
-                    if (rateLabel) rateLabel.textContent = "Puanını Güncelle (1-10):";
+                    if (rateLabel) rateLabel.textContent = "✓ İzledim:";
 
-                    // Misafir Modu: Sunucuya kaydetme, yalnızca bellek içi (JS state) tut!
                     if (!isAuthenticated) {
                         upsertGuestWatchlistItem({
                             tmdb_id: tmdbId,
@@ -426,12 +452,11 @@ document.addEventListener("DOMContentLoaded", () => {
                             genres: genres,
                             keywords: keywords,
                         });
-                        showToast(`⚡ "${title}" (${rating}/10) geçici listeye eklendi (Misafir Modu: F5'te sıfırlanır)`);
+                        showToast(`✓ "${title}" (${rating}/10) İzlendi olarak işaretlendi!`);
                         await refreshGuestRecommendationsPreview(false);
                         return;
                     }
 
-                    // Oturum Açmış Kullanıcı: Sunucudaki data/watchlists/<user_id>.json dosyasına kalıcı kaydet
                     try {
                         const res = await fetch("/api/watchlist", {
                             method: "POST",
@@ -452,20 +477,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
                         if (data.stats) {
                             updateCounters(data.stats.total);
-                            const statTotal = document.getElementById("statTotalCount");
-                            const statAvg = document.getElementById("statAvgRating");
-                            if (statTotal) statTotal.textContent = String(data.stats.total);
-                            if (statAvg) statAvg.textContent = `⭐ ${data.stats.avg_rating}`;
                         }
 
-                        showToast(`✓ "${title}" (${rating}/10) kalıcı izleme listene kaydedildi!`);
+                        showToast(`✓ "${title}" (${rating}/10) İzlendi olarak kaydedildi!`);
                     } catch (err) {
                         console.error("Puan kaydetme hatası:", err);
                     }
                 });
             });
 
-            // Listeden Çıkar Butonu
             const removeBtn = card.querySelector(".remove-watchlist-btn");
             if (removeBtn) {
                 removeBtn.addEventListener("click", async () => {
@@ -488,13 +508,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
                         card.remove();
                         updateSegmentedCounts();
+                        applySegmentedTabFilter();
                         if (data.stats) {
                             updateCounters(data.stats.total);
                             if (data.stats.total === 0) {
                                 window.location.reload();
                             }
                         }
-                        showToast(`🗑️ "${title}" kalıcı izleme listenden çıkarıldı.`);
+                        showToast(`🗑️ "${title}" izleme listenden çıkarıldı.`);
                     } catch (err) {
                         console.error("Silme hatası:", err);
                     }
@@ -506,26 +527,19 @@ document.addEventListener("DOMContentLoaded", () => {
     bindMediaCardEvents(document);
 
     // =========================================================================
-    // 4. Film ve Dizi Ayrımı (Segmented Control Tabs) + 36'şar Sayfalama (Load More)
+    // 5. Sayfa Başına 20 Film Numaralı Sayfalama (Page Switcher: 1, 2, 3...)
     // =========================================================================
     const segmentedControl = document.getElementById("mediaSegmentedControl");
-    const activeGrid =
-        document.getElementById("discoverGrid") ||
-        document.getElementById("watchlistGrid") ||
-        document.getElementById("recommendationsGrid");
     const tabEmptyState =
         document.getElementById("tabEmptyState") ||
         document.getElementById("discoverEmptyState");
-
     const watchlistQuickSearchInput = document.getElementById("watchlistQuickSearchInput");
-    const watchlistPaginationBar = document.getElementById("watchlistPaginationBar");
-    const watchlistShowingStatus = document.getElementById("watchlistShowingStatus");
-    const watchlistLoadMoreBtn = document.getElementById("watchlistLoadMoreBtn");
+    const numberedPaginationBar = document.getElementById("numberedPaginationBar");
 
     let currentMediaFilter = "ALL";
     let quickSearchQuery = "";
-    const PAGE_SIZE = 36;
-    let visibleLimit = PAGE_SIZE;
+    const PAGE_SIZE = 20; // Ana sayfada ve listelerde sayfa başına tam 20 yapım
+    let currentPage = 1;
 
     function updateSegmentedCounts() {
         if (!segmentedControl || !activeGrid) return;
@@ -542,15 +556,101 @@ document.addEventListener("DOMContentLoaded", () => {
         if (tvBadge) tvBadge.textContent = String(tvCount);
     }
 
-    function applySegmentedTabFilter() {
+    function renderNumberedPagination(totalMatched) {
+        if (!numberedPaginationBar) return;
+        const totalPages = Math.ceil(totalMatched / PAGE_SIZE);
+
+        if (totalPages <= 1) {
+            numberedPaginationBar.hidden = true;
+            numberedPaginationBar.innerHTML = "";
+            return;
+        }
+
+        numberedPaginationBar.hidden = false;
+        numberedPaginationBar.innerHTML = "";
+
+        const prevBtn = document.createElement("button");
+        prevBtn.type = "button";
+        prevBtn.className = "page-nav-btn";
+        prevBtn.textContent = "← Önceki";
+        prevBtn.disabled = currentPage <= 1;
+        prevBtn.addEventListener("click", () => {
+            if (currentPage > 1) {
+                currentPage -= 1;
+                applySegmentedTabFilter(true);
+            }
+        });
+        numberedPaginationBar.appendChild(prevBtn);
+
+        // Akıllı sayfa numarası aralığı (1 ... 4 5 6 ... 22)
+        const maxButtons = 7;
+        let startPage = Math.max(1, currentPage - 3);
+        let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+        if (endPage - startPage < maxButtons - 1) {
+            startPage = Math.max(1, endPage - maxButtons + 1);
+        }
+
+        if (startPage > 1) {
+            const firstBtn = document.createElement("button");
+            firstBtn.type = "button";
+            firstBtn.className = "page-nav-btn";
+            firstBtn.textContent = "1";
+            firstBtn.addEventListener("click", () => {
+                currentPage = 1;
+                applySegmentedTabFilter(true);
+            });
+            numberedPaginationBar.appendChild(firstBtn);
+        }
+
+        for (let p = startPage; p <= endPage; p++) {
+            const pageBtn = document.createElement("button");
+            pageBtn.type = "button";
+            pageBtn.className = `page-nav-btn ${p === currentPage ? "active" : ""}`;
+            pageBtn.textContent = String(p);
+            pageBtn.addEventListener("click", () => {
+                currentPage = p;
+                applySegmentedTabFilter(true);
+            });
+            numberedPaginationBar.appendChild(pageBtn);
+        }
+
+        if (endPage < totalPages) {
+            const lastBtn = document.createElement("button");
+            lastBtn.type = "button";
+            lastBtn.className = "page-nav-btn";
+            lastBtn.textContent = String(totalPages);
+            lastBtn.addEventListener("click", () => {
+                currentPage = totalPages;
+                applySegmentedTabFilter(true);
+            });
+            numberedPaginationBar.appendChild(lastBtn);
+        }
+
+        const nextBtn = document.createElement("button");
+        nextBtn.type = "button";
+        nextBtn.className = "page-nav-btn";
+        nextBtn.textContent = "Sonraki →";
+        nextBtn.disabled = currentPage >= totalPages;
+        nextBtn.addEventListener("click", () => {
+            if (currentPage < totalPages) {
+                currentPage += 1;
+                applySegmentedTabFilter(true);
+            }
+        });
+        numberedPaginationBar.appendChild(nextBtn);
+
+        const summary = document.createElement("span");
+        summary.className = "page-summary-label";
+        summary.textContent = `Sayfa ${currentPage} / ${totalPages} (${totalMatched} yapım)`;
+        numberedPaginationBar.appendChild(summary);
+    }
+
+    function applySegmentedTabFilter(scrollTop = false) {
         if (!activeGrid) return;
         const cards = Array.from(activeGrid.querySelectorAll(".media-card"));
-        const isPaginatedWatchlist = activeGrid.id === "watchlistGrid" || activeGrid.id === "discoverGrid";
         const cleanQuick = quickSearchQuery.trim().toLowerCase();
 
-        let matchedTotal = 0;
-        let shownCount = 0;
-
+        const matchingCards = [];
         cards.forEach((card) => {
             const cType = card.dataset.mediaType || "movie";
             const cTitle = (card.dataset.title || "").toLowerCase();
@@ -558,34 +658,32 @@ document.addEventListener("DOMContentLoaded", () => {
             const matchesQuick = !cleanQuick || cTitle.includes(cleanQuick);
 
             if (matchesType && matchesQuick) {
-                matchedTotal += 1;
-                if (!isPaginatedWatchlist || shownCount < visibleLimit) {
-                    card.style.display = "";
-                    shownCount += 1;
-                } else {
-                    card.style.display = "none";
-                }
+                matchingCards.push(card);
             } else {
                 card.style.display = "none";
             }
         });
 
-        if (isPaginatedWatchlist && watchlistPaginationBar) {
-            if (matchedTotal > PAGE_SIZE) {
-                watchlistPaginationBar.hidden = false;
-                if (watchlistShowingStatus) {
-                    watchlistShowingStatus.textContent = `${shownCount} / ${matchedTotal} yapım gösteriliyor`;
-                }
-                if (watchlistLoadMoreBtn) {
-                    watchlistLoadMoreBtn.hidden = shownCount >= matchedTotal;
-                }
-            } else {
-                watchlistPaginationBar.hidden = true;
-            }
-        }
+        const totalMatched = matchingCards.length;
+        const totalPages = Math.max(1, Math.ceil(totalMatched / PAGE_SIZE));
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        const startIdx = (currentPage - 1) * PAGE_SIZE;
+        const endIdx = startIdx + PAGE_SIZE;
+
+        matchingCards.forEach((card, idx) => {
+            card.style.display = idx >= startIdx && idx < endIdx ? "" : "none";
+        });
+
+        renderNumberedPagination(totalMatched);
 
         if (tabEmptyState && cards.length > 0) {
-            tabEmptyState.hidden = matchedTotal > 0;
+            tabEmptyState.hidden = totalMatched > 0;
+        }
+
+        if (scrollTop) {
+            window.scrollTo({ top: 0, behavior: "smooth" });
         }
     }
 
@@ -593,13 +691,13 @@ document.addEventListener("DOMContentLoaded", () => {
         segmentedControl.querySelectorAll(".segment-btn").forEach((btn) => {
             btn.addEventListener("click", () => {
                 currentMediaFilter = btn.dataset.mediaFilter || "ALL";
-                visibleLimit = PAGE_SIZE;
+                currentPage = 1;
                 segmentedControl.querySelectorAll(".segment-btn").forEach((b) => {
                     const isActive = b === btn;
                     b.classList.toggle("active", isActive);
                     b.setAttribute("aria-selected", String(isActive));
                 });
-                applySegmentedTabFilter();
+                applySegmentedTabFilter(false);
             });
         });
     }
@@ -607,64 +705,24 @@ document.addEventListener("DOMContentLoaded", () => {
     if (watchlistQuickSearchInput) {
         watchlistQuickSearchInput.addEventListener("input", (e) => {
             quickSearchQuery = e.target.value;
-            visibleLimit = PAGE_SIZE;
-            applySegmentedTabFilter();
+            currentPage = 1;
+            applySegmentedTabFilter(false);
         });
     }
 
-    if (watchlistLoadMoreBtn) {
-        watchlistLoadMoreBtn.addEventListener("click", () => {
-            visibleLimit += PAGE_SIZE;
-            applySegmentedTabFilter();
-        });
-    }
-
-    // İlk yüklemede sayfalama sınırını uygula (400-500+ kart varsa ilk 36'yı göster)
-    applySegmentedTabFilter();
+    // İlk yüklemede 20'lik sayfalamayı uygula
+    applySegmentedTabFilter(false);
 
     // =========================================================================
-    // 5. Örnek İzleme Listesi Yükle (Seed) & Listeyi Sıfırla (Clear)
+    // 6. Listeyi Sıfırla (Clear)
     // =========================================================================
-    async function triggerSeedWatchlist() {
-        // Misafir Modu: Sunucudaki hiçbir .json dosyasına yazmadan bellek içine yükle
-        if (!isAuthenticated) {
-            try {
-                const res = await fetch("/api/watchlist/sample-template");
-                if (!res.ok) return;
-                const data = await res.json();
-                guestWatchlist = data.items || [];
-                updateCounters(guestWatchlist.length);
-                syncDiscoverCardsWithGuestWatchlist();
-                await refreshGuestRecommendationsPreview(true);
-                showToast("⚡ Örnek veri geçici belleğe yüklendi! (Misafir Modu: F5'te sıfırlanır)");
-            } catch (err) {
-                console.error("Misafir örnek veri hatası:", err);
-            }
-            return;
-        }
-
-        // Oturum Açmış Kullanıcı: data/watchlists/<user_id>.json dosyasına kalıcı kaydet
-        try {
-            const res = await fetch("/api/watchlist/seed", {
-                method: "POST",
-                headers: { Accept: "application/json" },
-            });
-            if (res.ok) {
-                showToast("⚡ Örnek izleme listesi hesabınıza kalıcı olarak yüklendi!");
-                setTimeout(() => window.location.reload(), 400);
-            }
-        } catch (err) {
-            console.error("Örnek veri yükleme hatası:", err);
-        }
-    }
-
     async function triggerClearWatchlist() {
         if (!isAuthenticated) {
             guestWatchlist = [];
             updateCounters(0);
             syncDiscoverCardsWithGuestWatchlist();
             await refreshGuestRecommendationsPreview(false);
-            showToast("🗑️ Geçici misafir listesi sıfırlandı.");
+            showToast("🗑️ Geçici liste sıfırlandı.");
             return;
         }
 
@@ -682,11 +740,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    ["seedWatchlistBtn", "emptySeedWatchlistBtn", "seedFromRecsBtn", "emptySeedRecsBtn"].forEach((id) => {
-        const btn = document.getElementById(id);
-        if (btn) btn.addEventListener("click", triggerSeedWatchlist);
-    });
-
     if (clearWatchlistBtn) {
         clearWatchlistBtn.addEventListener("click", triggerClearWatchlist);
     }
@@ -695,7 +748,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (scrollToGuestRecsBtn) {
         scrollToGuestRecsBtn.addEventListener("click", async () => {
             if (guestWatchlist.length === 0) {
-                await triggerSeedWatchlist();
+                showToast("✨ Öneri hesaplamak için önce listeden birkaç film veya diziye puan verin.");
             } else {
                 await refreshGuestRecommendationsPreview(true);
             }
@@ -703,7 +756,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // =========================================================================
-    // 6. Keşfet & Ekle Canlı TMDB Arama
+    // 7. Keşfet Canlı Arama (Unified Search & Filter Bar)
     // =========================================================================
     const discoverGrid = document.getElementById("discoverGrid");
     const discoverSearchInput = document.getElementById("discoverSearchInput");
@@ -733,7 +786,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 article.dataset.keywords = JSON.stringify(item.keywords || []);
 
                 const genreTagsHtml = (item.genres || [])
-                    .slice(0, 3)
+                    .slice(0, 2)
                     .map((g) => `<span class="genre-tag">${escapeHtml(g)}</span>`)
                     .join("");
 
@@ -741,7 +794,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 for (let r = 1; r <= 10; r++) {
                     const selectedCls = item.user_rating === r ? "selected" : "";
                     const toneCls = r < 5 ? "low-rate" : r >= 8 ? "high-rate" : "";
-                    ratingBtnsHtml += `<button type="button" class="rate-num-btn ${selectedCls} ${toneCls}" data-rating="${r}" title="${r}/10 Puan Ver">${r}</button>`;
+                    ratingBtnsHtml += `<button type="button" class="rate-num-btn ${selectedCls} ${toneCls}" data-rating="${r}" title="İzledim (${r}/10 Puan)">${r}</button>`;
                 }
 
                 article.innerHTML = `
@@ -751,15 +804,16 @@ document.addEventListener("DOMContentLoaded", () => {
                         </span>
                         <span class="media-badge-year">${escapeHtml(String(item.release_year || ""))}</span>
                         <div class="watched-ribbon" ${item.in_watchlist ? "" : "hidden"}>
-                            ✓ Listende: <strong class="user-rating-val">${item.user_rating || ""}</strong>/10
+                            ✓ İzlendi (<strong class="user-rating-val">${item.user_rating || ""}</strong>/10)
                         </div>
                         <a href="/detail/${escapeHtml(item.media_type)}/${item.tmdb_id}" class="poster-link">
-                            <img src="${escapeHtml(item.poster_path)}" alt="${escapeHtml(item.title)}" loading="lazy">
+                            <img src="${escapeHtml(item.poster_path || '/static/img/no-poster.svg')}" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.onerror=null;this.src='/static/img/no-poster.svg';">
                         </a>
                     </div>
                     <div class="media-card-body">
                         <div class="media-meta-row">
-                            <span class="tmdb-score">⭐ ${escapeHtml(String(item.vote_average))} <small>TMDB</small></span>
+                            <span class="tmdb-score">⭐ ${escapeHtml(String(item.vote_average))}</span>
+                            <span class="card-year-inline">${escapeHtml(String(item.release_year || ""))}</span>
                             <div class="genre-tags">${genreTagsHtml}</div>
                         </div>
                         <h3 class="media-title">
@@ -768,7 +822,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <p class="media-overview">${escapeHtml(item.overview || "")}</p>
                         <div class="quick-rate-box">
                             <div class="quick-rate-header">
-                                <span class="rate-label">${item.in_watchlist ? "Puanını Güncelle (1-10):" : "Puan Ver & Listeye Ekle (1-10):"}</span>
+                                <span class="rate-label">${item.in_watchlist ? "✓ İzledim:" : "İzledim (Puanla):"}</span>
                             </div>
                             <div class="rating-number-bar">${ratingBtnsHtml}</div>
                         </div>
@@ -777,10 +831,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 discoverGrid.appendChild(article);
             });
 
+            currentPage = 1;
             bindMediaCardEvents(discoverGrid);
             syncDiscoverCardsWithGuestWatchlist();
             updateSegmentedCounts();
-            applySegmentedTabFilter();
+            applySegmentedTabFilter(false);
         }
 
         async function fetchDiscoverItems() {
@@ -807,16 +862,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (discoverSearchInput) {
             discoverSearchInput.addEventListener("input", (e) => {
                 discoverState.q = e.target.value;
-                if (navbarSearchInput) navbarSearchInput.value = discoverState.q;
-                if (searchClearBtn) searchClearBtn.hidden = discoverState.q.length === 0;
-                scheduleDiscoverSearch();
-            });
-        }
-
-        if (navbarSearchInput) {
-            navbarSearchInput.addEventListener("input", (e) => {
-                discoverState.q = e.target.value;
-                if (discoverSearchInput) discoverSearchInput.value = discoverState.q;
                 if (searchClearBtn) searchClearBtn.hidden = discoverState.q.length === 0;
                 scheduleDiscoverSearch();
             });
@@ -825,7 +870,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (searchClearBtn) {
             searchClearBtn.addEventListener("click", () => {
                 discoverState.q = "";
-                if (navbarSearchInput) navbarSearchInput.value = "";
                 if (discoverSearchInput) discoverSearchInput.value = "";
                 searchClearBtn.hidden = true;
                 scheduleDiscoverSearch();
@@ -848,7 +892,95 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // =========================================================================
-    // 7. Sinematik İçerik Detay Sayfası (/detail/<media_type>/<int:tmdb_id>) Mantığı
+    // 8. "🎬 Film / Dizi Talep Et" Modal & Form Yönetimi (data/requests.json)
+    // =========================================================================
+    const requestModal = document.getElementById("contentRequestModal");
+    const closeRequestModalBtn = document.getElementById("closeRequestModalBtn");
+    const contentRequestForm = document.getElementById("contentRequestForm");
+    const reqTitleInput = document.getElementById("reqTitleInput");
+    const reqTypeSelect = document.getElementById("reqTypeSelect");
+    const reqYearInput = document.getElementById("reqYearInput");
+    const reqNoteInput = document.getElementById("reqNoteInput");
+    const requestFeedbackAlert = document.getElementById("requestFeedbackAlert");
+    const submitRequestBtn = document.getElementById("submitRequestBtn");
+
+    function openRequestModal() {
+        if (!requestModal) return;
+        if (requestFeedbackAlert) requestFeedbackAlert.hidden = true;
+        // Eğer arama kutusunda bir metin varsa otomatik olarak talep başlığına doldur
+        if (reqTitleInput && !reqTitleInput.value && discoverSearchInput && discoverSearchInput.value.trim()) {
+            reqTitleInput.value = discoverSearchInput.value.trim();
+        }
+        requestModal.hidden = false;
+        reqTitleInput?.focus();
+    }
+
+    function closeRequestModal() {
+        if (requestModal) requestModal.hidden = true;
+    }
+
+    document.querySelectorAll(".open-request-modal-btn").forEach((btn) => {
+        btn.addEventListener("click", openRequestModal);
+    });
+
+    if (closeRequestModalBtn) {
+        closeRequestModalBtn.addEventListener("click", closeRequestModal);
+    }
+
+    if (requestModal) {
+        requestModal.addEventListener("click", (e) => {
+            if (e.target === requestModal) closeRequestModal();
+        });
+    }
+
+    if (contentRequestForm) {
+        contentRequestForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const titleVal = (reqTitleInput?.value || "").trim();
+            if (!titleVal) return;
+
+            if (submitRequestBtn) {
+                submitRequestBtn.disabled = true;
+                submitRequestBtn.textContent = "⏳ Gönderiliyor...";
+            }
+
+            try {
+                const res = await fetch("/api/requests", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        title: titleVal,
+                        media_type: reqTypeSelect?.value || "Film",
+                        year: reqYearInput?.value || "",
+                        note: reqNoteInput?.value || "",
+                    }),
+                });
+
+                const data = await res.json();
+                if (res.ok && data.status === "ok") {
+                    if (requestFeedbackAlert) {
+                        requestFeedbackAlert.textContent = `✓ ${data.message}`;
+                        requestFeedbackAlert.hidden = false;
+                    }
+                    showToast(`🎬 ${data.message}`);
+                    contentRequestForm.reset();
+                    setTimeout(() => {
+                        closeRequestModal();
+                    }, 1500);
+                }
+            } catch (err) {
+                console.error("Talep gönderme hatası:", err);
+            } finally {
+                if (submitRequestBtn) {
+                    submitRequestBtn.disabled = false;
+                    submitRequestBtn.textContent = "📨 Talebi Gönder";
+                }
+            }
+        });
+    }
+
+    // =========================================================================
+    // 9. Sinematik İçerik Detay Sayfası (/detail/<media_type>/<int:tmdb_id>) Mantığı
     // =========================================================================
     const detailRoot = document.getElementById("detailPageRoot");
     if (detailRoot) {
@@ -893,12 +1025,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
                 if (watchedRibbon) watchedRibbon.hidden = false;
                 if (userRatingVal) userRatingVal.textContent = String(ratingToSave);
-                if (saveBtn) saveBtn.textContent = "💾 Geçici Puanı Güncelle";
+                if (saveBtn) saveBtn.textContent = "✓ İzlendi (Güncelle)";
                 if (removeBtn) removeBtn.hidden = false;
                 if (ratePromptLabel) {
-                    ratePromptLabel.innerHTML = `⚡ Geçici Listende (Puanın: <strong class="gold-text">${ratingToSave}/10</strong> • F5'te sıfırlanır):`;
+                    ratePromptLabel.innerHTML = `✓ İzlendi (Geçici Puanın: <strong class="gold-text">${ratingToSave}/10</strong>):`;
                 }
-                showToast(`⚡ "${title}" (${ratingToSave}/10) geçici listeye eklendi (Misafir Modu: F5'te sıfırlanır)`);
+                showToast(`✓ "${title}" (${ratingToSave}/10) İzlendi olarak işaretlendi!`);
                 return;
             }
 
@@ -921,13 +1053,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 if (watchedRibbon) watchedRibbon.hidden = false;
                 if (userRatingVal) userRatingVal.textContent = String(ratingToSave);
-                if (saveBtn) saveBtn.textContent = "💾 Puanı Güncelle";
+                if (saveBtn) saveBtn.textContent = "✓ İzlendi (Güncelle)";
                 if (removeBtn) removeBtn.hidden = false;
                 if (ratePromptLabel) {
-                    ratePromptLabel.innerHTML = `✓ İzleme Listende (Mevcut Puanın: <strong class="gold-text">${ratingToSave}/10</strong>) — Puanı Güncelle:`;
+                    ratePromptLabel.innerHTML = `✓ İzlendi (Puanın: <strong class="gold-text">${ratingToSave}/10</strong>) — Puanı Güncelle:`;
                 }
                 if (data.stats) updateCounters(data.stats.total);
-                showToast(`✓ "${title}" (${ratingToSave}/10) kalıcı izleme listene kaydedildi!`);
+                showToast(`✓ "${title}" (${ratingToSave}/10) İzlendi olarak kaydedildi!`);
             } catch (err) {
                 console.error("Detay sayfası kayıt hatası:", err);
             }
@@ -957,10 +1089,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     );
                     updateCounters(guestWatchlist.length);
                     if (watchedRibbon) watchedRibbon.hidden = true;
-                    if (saveBtn) saveBtn.textContent = "➕ İzleme Listeme Ekle";
+                    if (saveBtn) saveBtn.textContent = "✓ İzledim";
                     removeBtn.hidden = true;
                     if (ratePromptLabel) {
-                        ratePromptLabel.textContent = "Puan Seç (1-10) ve İzleme Listene Ekle:";
+                        ratePromptLabel.textContent = "Puan Seç (1-10) ve İzledim Olarak İşaretle:";
                     }
                     showToast(`🗑️ "${title}" geçici listeden çıkarıldı.`);
                     return;
@@ -974,20 +1106,19 @@ document.addEventListener("DOMContentLoaded", () => {
                     const data = await res.json();
 
                     if (watchedRibbon) watchedRibbon.hidden = true;
-                    if (saveBtn) saveBtn.textContent = "➕ İzleme Listeme Ekle";
+                    if (saveBtn) saveBtn.textContent = "✓ İzledim";
                     removeBtn.hidden = true;
                     if (ratePromptLabel) {
-                        ratePromptLabel.textContent = "Puan Seç (1-10) ve İzleme Listene Ekle:";
+                        ratePromptLabel.textContent = "Puan Seç (1-10) ve İzledim Olarak İşaretle:";
                     }
                     if (data.stats) updateCounters(data.stats.total);
-                    showToast(`🗑️ "${title}" kalıcı izleme listenden çıkarıldı.`);
+                    showToast(`🗑️ "${title}" izleme listenden çıkarıldı.`);
                 } catch (err) {
                     console.error("Detay sayfası silme hatası:", err);
                 }
             });
         }
 
-        // Resmi Fragman (YouTube Embed) Glassmorphism Modal
         const openTrailerBtn = document.getElementById("openTrailerModalBtn");
         const closeTrailerBtn = document.getElementById("closeTrailerModalBtn");
         const trailerModal = document.getElementById("trailerModal");
@@ -1012,187 +1143,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (e.target === trailerModal) closeTrailerModal();
             });
         }
-        document.addEventListener("keydown", (e) => {
-            if (e.key === "Escape" && trailerModal && !trailerModal.hidden) {
-                closeTrailerModal();
-            }
-        });
     }
-});
-
-
-// ============================================================================
-// 8. Toplu Liste İçe Aktarma (Bulk Import - 500+ Yapım) Modal & İlerleme Çubuğu
-// ============================================================================
-document.addEventListener("DOMContentLoaded", () => {
-    const bulkModal = document.getElementById("bulkImportModal");
-    if (!bulkModal) return;
-
-    const mainNavbar = document.getElementById("mainNavbar");
-    const isAuthenticated = mainNavbar?.dataset.authenticated === "true";
-
-    const openBtns = [
-        document.getElementById("openBulkImportModalBtn"),
-        document.getElementById("emptyOpenBulkImportBtn"),
-    ].filter(Boolean);
-
-    const closeBtn = document.getElementById("closeBulkImportModalBtn");
-    const textarea = document.getElementById("bulkImportTextarea");
-    const detectedBadge = document.getElementById("bulkDetectedCountBadge");
-    const mediaTypeSelect = document.getElementById("bulkMediaTypeSelect");
-    const defaultRatingSelect = document.getElementById("bulkDefaultRatingSelect");
-    const startBtn = document.getElementById("startBulkImportBtn");
-    const reloadBtn = document.getElementById("finishBulkImportReloadBtn");
-
-    const progressContainer = document.getElementById("bulkProgressContainer");
-    const progressStatusText = document.getElementById("bulkProgressStatusText");
-    const progressPercentText = document.getElementById("bulkProgressPercentText");
-    const progressFill = document.getElementById("bulkProgressFill");
-
-    const summaryBox = document.getElementById("bulkSummaryReportBox");
-    const reportAddedCount = document.getElementById("reportAddedCount");
-    const reportSkippedCount = document.getElementById("reportSkippedCount");
-    const reportNotFoundCount = document.getElementById("reportNotFoundCount");
-
-    // Satır başı numaralarını (1-, 24., #12, • vb.) temizleyen istemci ayrıştırıcı
-    function cleanLineClient(rawLine) {
-        if (!rawLine) return "";
-        return rawLine
-            .replace(/^\s*(?:[#•\-\*\+]+|\d+\s*[\-\.\)\:\]\–\—]+|\[\d+\]\s*)+\s*/u, "")
-            .replace(/\s*\((19\d{2}|20\d{2})\)\s*$/, "")
-            .trim();
-    }
-
-    function getParsedLines() {
-        if (!textarea) return [];
-        return textarea.value
-            .split(/\r?\n/)
-            .map(cleanLineClient)
-            .filter((line) => line.length >= 2);
-    }
-
-    function updateDetectedCount() {
-        const lines = getParsedLines();
-        if (detectedBadge) {
-            detectedBadge.textContent = `${lines.length} başlık algılandı`;
-        }
-    }
-
-    if (textarea) {
-        textarea.addEventListener("input", updateDetectedCount);
-    }
-
-    function openBulkModal() {
-        bulkModal.hidden = false;
-        updateDetectedCount();
-        textarea?.focus();
-    }
-
-    function closeBulkModal() {
-        bulkModal.hidden = true;
-    }
-
-    openBtns.forEach((btn) => btn.addEventListener("click", openBulkModal));
-    if (closeBtn) closeBtn.addEventListener("click", closeBulkModal);
-
-    bulkModal.addEventListener("click", (e) => {
-        if (e.target === bulkModal) closeBulkModal();
-    });
 
     document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && !bulkModal.hidden) closeBulkModal();
+        if (e.key === "Escape") {
+            if (whyModal && !whyModal.hidden) closeWhyRecommendedModal();
+            if (requestModal && !requestModal.hidden) closeRequestModal();
+        }
     });
-
-    if (startBtn) {
-        startBtn.addEventListener("click", async () => {
-            const allLines = getParsedLines();
-            if (allLines.length === 0) {
-                textarea?.focus();
-                return;
-            }
-
-            const totalLines = allLines.length;
-            const mediaType = mediaTypeSelect ? mediaTypeSelect.value : "auto";
-            const defaultRating = defaultRatingSelect ? parseInt(defaultRatingSelect.value, 10) : 8;
-
-            startBtn.disabled = true;
-            startBtn.textContent = "⏳ İşleniyor...";
-            if (reloadBtn) reloadBtn.hidden = true;
-            if (summaryBox) summaryBox.hidden = true;
-            if (progressContainer) progressContainer.hidden = false;
-
-            const CHUNK_SIZE = 25;
-            let processedCount = 0;
-            let totalAdded = 0;
-            let totalSkipped = 0;
-            let totalNotFound = 0;
-            const seenClientKeys = new Set();
-
-            for (let i = 0; i < totalLines; i += CHUNK_SIZE) {
-                const chunk = allLines.slice(i, i + CHUNK_SIZE);
-                const currentEnd = Math.min(i + chunk.length, totalLines);
-
-                if (progressStatusText) {
-                    progressStatusText.textContent = `${currentEnd} / ${totalLines} işleniyor...`;
-                }
-                const pct = Math.round((currentEnd / totalLines) * 100);
-                if (progressPercentText) progressPercentText.textContent = `%${pct}`;
-                if (progressFill) progressFill.style.width = `${pct}%`;
-
-                try {
-                    const res = await fetch("/api/watchlist/bulk-import", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            lines: chunk,
-                            media_type: mediaType,
-                            default_rating: defaultRating,
-                            existing_keys: Array.from(seenClientKeys),
-                        }),
-                    });
-
-                    if (res.ok) {
-                        const data = await res.json();
-                        totalAdded += Number(data.added_count || 0);
-                        totalSkipped += Number(data.skipped_count || 0);
-                        totalNotFound += Number(data.not_found_count || 0);
-
-                        (data.added_items || []).forEach((item) => {
-                            seenClientKeys.add(`${item.media_type}_${item.tmdb_id}`);
-                            seenClientKeys.add(String(item.title || "").toLowerCase());
-                        });
-                    }
-                } catch (err) {
-                    console.error("Bulk chunk hatası:", err);
-                }
-
-                processedCount = currentEnd;
-            }
-
-            if (progressStatusText) {
-                progressStatusText.textContent = `${totalLines} / ${totalLines} tamamlandı!`;
-            }
-            if (progressPercentText) progressPercentText.textContent = "%100";
-            if (progressFill) progressFill.style.width = "100%";
-
-            if (reportAddedCount) reportAddedCount.textContent = String(totalAdded);
-            if (reportSkippedCount) reportSkippedCount.textContent = String(totalSkipped);
-            if (reportNotFoundCount) reportNotFoundCount.textContent = String(totalNotFound);
-            if (summaryBox) summaryBox.hidden = false;
-
-            startBtn.disabled = false;
-            startBtn.textContent = "🚀 Toplu Aktarımı Başlat";
-
-            if (reloadBtn) {
-                reloadBtn.hidden = false;
-                reloadBtn.onclick = () => {
-                    if (isAuthenticated) {
-                        window.location.reload();
-                    } else {
-                        closeBulkModal();
-                    }
-                };
-            }
-        });
-    }
 });

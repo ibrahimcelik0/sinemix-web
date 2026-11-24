@@ -82,27 +82,45 @@ def _tmdb_get(endpoint: str, params: Optional[Dict[str, Any]] = None) -> Optiona
 
 def _format_poster_url(poster_path: Optional[str]) -> str:
     if not poster_path:
-        return "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=500"
-    if poster_path.startswith("http://") or poster_path.startswith("https://"):
-        return poster_path
-    return f"https://image.tmdb.org/t/p/w500{poster_path}"
+        return "/static/img/no-poster.svg"
+    clean = str(poster_path).strip()
+    if not clean or "ui-avatars.com" in clean:
+        return "/static/img/no-poster.svg"
+    if clean.startswith("https://image.tmdb.org/t/p/"):
+        return clean
+    if clean.startswith("http://") or clean.startswith("https://"):
+        return clean
+    if not clean.startswith("/"):
+        clean = f"/{clean}"
+    return f"https://image.tmdb.org/t/p/w500{clean}"
 
 
 def _format_backdrop_url(backdrop_path: Optional[str], fallback_poster: Optional[str] = None) -> str:
     if backdrop_path:
-        if backdrop_path.startswith("http://") or backdrop_path.startswith("https://"):
-            return backdrop_path
-        return f"https://image.tmdb.org/t/p/w1280{backdrop_path}"
+        clean = str(backdrop_path).strip()
+        if clean and "ui-avatars.com" not in clean:
+            if clean.startswith("https://image.tmdb.org/t/p/"):
+                return clean
+            if clean.startswith("http://") or clean.startswith("https://"):
+                return clean
+            if not clean.startswith("/"):
+                clean = f"/{clean}"
+            return f"https://image.tmdb.org/t/p/w1280{clean}"
     return _format_poster_url(fallback_poster)
 
 
 def _format_profile_url(profile_path: Optional[str], name: str = "") -> str:
     if profile_path:
-        if profile_path.startswith("http://") or profile_path.startswith("https://"):
-            return profile_path
-        return f"https://image.tmdb.org/t/p/w185{profile_path}"
-    encoded_name = urllib.parse.quote(name or "Oyuncu")
-    return f"https://ui-avatars.com/api/?name={encoded_name}&background=1f1f2e&color=f5c518&size=185&bold=true"
+        clean = str(profile_path).strip()
+        if clean and "ui-avatars.com" not in clean:
+            if clean.startswith("https://image.tmdb.org/t/p/"):
+                return clean
+            if clean.startswith("http://") or clean.startswith("https://"):
+                return clean
+            if not clean.startswith("/"):
+                clean = f"/{clean}"
+            return f"https://image.tmdb.org/t/p/w185{clean}"
+    return "/static/img/no-avatar.svg"
 
 
 def format_currency(amount: Optional[int]) -> str:
@@ -376,40 +394,6 @@ def fetch_comprehensive_item_detail(tmdb_id: int, media_type: str = "movie") -> 
         }
 
     if not item_detail:
-        # 2.B) Toplu İçe Aktarma (Bulk Import) Önbelleği veya Kullanıcının İzleme Listesinden Çözümle
-        from app.features.watchlist.services import get_cached_tmdb_item
-        cached = get_cached_tmdb_item(tmdb_id) or WatchlistRepository.get_by_id(tmdb_id, media_type)
-        if cached:
-            m_type = cached.get("media_type", media_type)
-            item_detail = {
-                "tmdb_id": int(cached["tmdb_id"]),
-                "media_type": m_type,
-                "title": cached.get("title", "Yapım"),
-                "original_title": cached.get("title", "Yapım"),
-                "tagline": "SineMix Katalog & Toplu Liste İçe Aktarma Kaydı",
-                "overview": cached.get("overview") or f"{cached.get('title')} yapımı izleme listenizde yer alıyor.",
-                "release_year": cached.get("release_year", 2022),
-                "release_date": str(cached.get("release_year", 2022)),
-                "vote_average": cached.get("vote_average", 8.0),
-                "genres": list(cached.get("genres") or ["Dram"]),
-                "keywords": list(cached.get("keywords") or []),
-                "status": "Yayınlandı",
-                "original_language": "İngilizce (EN)",
-                "runtime_formatted": "2 sa 10 dk" if m_type == "movie" else "",
-                "number_of_seasons": 1,
-                "number_of_episodes": 12,
-                "format_summary": "2 sa 10 dk" if m_type == "movie" else "1 Sezon • 12 Bölüm",
-                "budget_formatted": "Belirtilmemiş",
-                "revenue_formatted": "Belirtilmemiş",
-                "director_or_creator": "Belirtilmemiş",
-                "cast": [],
-                "trailer_key": "",
-                "poster_path": cached.get("poster_path", _format_poster_url(None)),
-                "backdrop_path": cached.get("poster_path", _format_poster_url(None)),
-                "similar_items": [],
-            }
-
-    if not item_detail:
         return None
 
     # 3. Kullanıcı İzleme Listesi Durumu (`data/watchlist.json`) ve Öneri Eşleşme Analizi
@@ -461,7 +445,11 @@ def search_multi_catalog(
                 continue
 
         if clean_query:
-            matches_title = fuzzy_text_match(item.get("title", ""), clean_query) or fuzzy_text_match(item.get("original_title", ""), clean_query)
+            matches_title = (
+                fuzzy_text_match(item.get("title", ""), clean_query)
+                or fuzzy_text_match(item.get("original_title", ""), clean_query)
+                or fuzzy_text_match(item.get("tr_title", ""), clean_query)
+            )
             matches_kw = any(fuzzy_text_match(kw, clean_query) for kw in item.get("keywords", []))
             matches_dir = fuzzy_text_match(item.get("director", ""), clean_query)
             if not (matches_title or matches_kw or matches_dir):

@@ -17,80 +17,6 @@ from typing import Any, Dict, List, Optional
 from flask import has_request_context, session
 
 
-DEFAULT_SAMPLE_WATCHLIST: List[Dict[str, Any]] = [
-    {
-        "tmdb_id": 157336,
-        "media_type": "movie",
-        "title": "Interstellar",
-        "poster_path": "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
-        "user_rating": 10,
-        "genres": ["Bilim Kurgu", "Dram", "Macera"],
-        "keywords": ["space travel", "wormhole", "time dilation", "astronaut", "future", "relativity"],
-        "added_at": "2026-11-20T19:30:00Z",
-    },
-    {
-        "tmdb_id": 27205,
-        "media_type": "movie",
-        "title": "Inception",
-        "poster_path": "https://image.tmdb.org/t/p/w500/oYuLEt3zVCKq57qu2F8dT7NIa6f.jpg",
-        "user_rating": 9,
-        "genres": ["Bilim Kurgu", "Aksiyon", "Macera"],
-        "keywords": ["dream", "subconscious", "heist", "mind bending", "virtual reality", "paradox"],
-        "added_at": "2026-11-20T21:15:00Z",
-    },
-    {
-        "tmdb_id": 155,
-        "media_type": "movie",
-        "title": "The Dark Knight",
-        "poster_path": "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
-        "user_rating": 9,
-        "genres": ["Aksiyon", "Suç", "Dram", "Gerilim"],
-        "keywords": ["vigilante", "chaos", "superhero", "organized crime", "psychological thriller", "dark hero"],
-        "added_at": "2026-11-21T18:00:00Z",
-    },
-    {
-        "tmdb_id": 70523,
-        "media_type": "tv",
-        "title": "Dark",
-        "poster_path": "https://image.tmdb.org/t/p/w500/apbrbWs8M9lyOpJYU5WXrpFbk1Z.jpg",
-        "user_rating": 10,
-        "genres": ["Bilim Kurgu", "Gizem", "Dram", "Suç"],
-        "keywords": ["time travel", "paradox", "small town secrets", "apocalypse", "parallel world", "mystery"],
-        "added_at": "2026-11-21T22:10:00Z",
-    },
-    {
-        "tmdb_id": 1396,
-        "media_type": "tv",
-        "title": "Breaking Bad",
-        "poster_path": "https://image.tmdb.org/t/p/w500/ztkUQFLlC19CCMYHW9o1zWhJRNq.jpg",
-        "user_rating": 9,
-        "genres": ["Dram", "Suç", "Gerilim"],
-        "keywords": ["anti hero", "cartel", "chemistry", "organized crime", "transformation", "morality"],
-        "added_at": "2026-11-22T14:40:00Z",
-    },
-    {
-        "tmdb_id": 603,
-        "media_type": "movie",
-        "title": "The Matrix",
-        "poster_path": "https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg",
-        "user_rating": 8,
-        "genres": ["Bilim Kurgu", "Aksiyon"],
-        "keywords": ["simulated reality", "artificial intelligence", "cyberpunk", "dystopia", "virtual reality"],
-        "added_at": "2026-11-22T17:20:00Z",
-    },
-    {
-        "tmdb_id": 456740,
-        "media_type": "movie",
-        "title": "Basit Romantik Tatil",
-        "poster_path": "https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=500",
-        "user_rating": 3,
-        "genres": ["Romantik", "Komedi"],
-        "keywords": ["summer romance", "wedding", "cliche", "beach party", "teen romance"],
-        "added_at": "2026-11-22T20:00:00Z",
-    },
-]
-
-
 class WatchlistRepository:
     """
     Kullanıcı bazlı `data/watchlists/<user_id>.json` dosyalarını yöneten Repository sınıfı.
@@ -305,16 +231,3 @@ class WatchlistRepository:
         if not uid:
             return
         cls._save_all([], user_id=uid)
-
-    @classmethod
-    def seed_sample_data(cls, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
-        uid = cls._resolve_user_id(user_id)
-        sample_copy = [dict(item) for item in DEFAULT_SAMPLE_WATCHLIST]
-        if uid:
-            cls._save_all(sample_copy, user_id=uid)
-        return sample_copy
-
-    @classmethod
-    def get_sample_template(cls) -> List[Dict[str, Any]]:
-        """Misafir modunda dosyaya yazmadan örnek veri listesini bellek içi döndürür."""
-        return [dict(item) for item in DEFAULT_SAMPLE_WATCHLIST]

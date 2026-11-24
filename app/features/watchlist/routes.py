@@ -1,15 +1,13 @@
-"""Watchlist feature endpoint'leri (İzleme Listem sayfası ve JSON CRUD API'leri - @login_required korumalı)."""
+"""Watchlist feature endpoint'leri (İzleme Listem sayfası ve JSON CRUD API'leri)."""
 
 from flask import Blueprint, jsonify, redirect, render_template, request, url_for
-from app.features.auth.services import get_current_user, login_required
+from app.features.auth.services import login_required
 from app.features.watchlist.services import (
     add_or_rate_watchlist_item,
     clear_user_watchlist,
     get_user_watchlist,
     get_watchlist_stats,
-    process_bulk_import_chunk,
     remove_watchlist_item,
-    seed_sample_watchlist,
 )
 from app.features.recommendations.services import build_user_interest_profile
 
@@ -47,19 +45,6 @@ def api_get_watchlist():
     return jsonify({"items": items, "stats": get_watchlist_stats()})
 
 
-@watchlist_bp.route("/api/watchlist/sample-template", methods=["GET"])
-def api_guest_sample_template():
-    """
-    Misafir modunda sunucudaki hiçbir `.json` dosyasına yazmadan,
-    yalnızca bellek içi (client-side JS state) test için örnek veri şablonunu döndürür.
-    """
-    from app.features.watchlist.repository import WatchlistRepository
-    return jsonify({
-        "status": "ok",
-        "items": WatchlistRepository.get_sample_template(),
-    })
-
-
 @watchlist_bp.route("/api/watchlist", methods=["POST"])
 @login_required
 def api_add_watchlist():
@@ -88,20 +73,6 @@ def api_delete_watchlist(media_type: str, tmdb_id: int):
     })
 
 
-@watchlist_bp.route("/api/watchlist/seed", methods=["POST"])
-@login_required
-def api_seed_watchlist():
-    """Aktif kullanıcının izleme listesine örnek verileri yükler."""
-    items = seed_sample_watchlist()
-    if request.accept_mimetypes.best == "application/json" or request.is_json:
-        return jsonify({
-            "status": "ok",
-            "items": items,
-            "stats": get_watchlist_stats(),
-        })
-    return redirect(url_for("watchlist.watchlist_page"))
-
-
 @watchlist_bp.route("/api/watchlist/clear", methods=["POST"])
 @login_required
 def api_clear_watchlist():
@@ -114,32 +85,3 @@ def api_clear_watchlist():
             "stats": get_watchlist_stats(),
         })
     return redirect(url_for("watchlist.watchlist_page"))
-
-
-
-@watchlist_bp.route("/api/watchlist/bulk-import", methods=["POST"])
-def api_bulk_import_watchlist():
-    """
-    Toplu Liste İçe Aktarma (Bulk Import) API uç noktası.
-    500+ film ve diziyi parçalar (chunk) halinde işler;
-    oturum açıksa `data/watchlists/<user_id>.json` dosyasına kalıcı yazar,
-    misafir modundaysa bellek içi (stateless) çözümlenmiş yapımları döndürür.
-    """
-    payload = request.get_json(silent=True) or {}
-    lines = payload.get("lines") or []
-    if isinstance(lines, str):
-        lines = lines.splitlines()
-
-    media_type = str(payload.get("media_type", "auto")).strip().lower()
-    default_rating = int(payload.get("default_rating", 8) or 8)
-    existing_keys = payload.get("existing_keys") or []
-
-    user = get_current_user()
-    result = process_bulk_import_chunk(
-        raw_lines=lines,
-        preferred_media_type=media_type,
-        default_rating=default_rating,
-        existing_keys_from_client=existing_keys,
-        persist_to_user_file=(user is not None),
-    )
-    return jsonify(result)

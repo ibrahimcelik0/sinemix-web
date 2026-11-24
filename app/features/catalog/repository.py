@@ -133,7 +133,29 @@ class CatalogRepository:
             cls._cache_mtime = -1.0
 
     @staticmethod
-    def _to_app_dict(raw_item: Dict[str, Any]) -> Dict[str, Any]:
+    def normalize_poster_url(poster_path: Any) -> str:
+        """
+        TMDB poster_path değerini her zaman geçerli tam URL (`https://image.tmdb.org/t/p/w500/...`)
+        veya sade koyu sinema ikonu (`/static/img/no-poster.svg`) olarak döndürür.
+        Çift domain eklenmesini ve eski `ui-avatars.com` baş harf görsellerini engeller.
+        """
+        if not poster_path:
+            return "/static/img/no-poster.svg"
+        clean = str(poster_path).strip()
+        if not clean or "ui-avatars.com" in clean:
+            return "/static/img/no-poster.svg"
+        if clean.startswith("https://image.tmdb.org/t/p/"):
+            return clean
+        if clean.startswith("http://") or clean.startswith("https://"):
+            return clean
+        if clean.startswith("/static/"):
+            return clean
+        if not clean.startswith("/"):
+            clean = f"/{clean}"
+        return f"https://image.tmdb.org/t/p/w500{clean}"
+
+    @classmethod
+    def _to_app_dict(cls, raw_item: Dict[str, Any]) -> Dict[str, Any]:
         """
         Disk üzerindeki `genres: [{"id": ..., "name": ...}]` şemasını korurken,
         uygulama şablonları ve öneri algoritması için `genres` alanını isim listesi
@@ -143,6 +165,18 @@ class CatalogRepository:
         genre_objs = normalize_genre_objects(raw_item.get("genres"))
         item["genre_objects"] = genre_objs
         item["genres"] = [g["name"] for g in genre_objs]
+        item["poster_path"] = cls.normalize_poster_url(raw_item.get("poster_path"))
+        backdrop_raw = raw_item.get("backdrop_path")
+        if backdrop_raw and "ui-avatars.com" not in str(backdrop_raw):
+            b_clean = str(backdrop_raw).strip()
+            if b_clean.startswith("https://image.tmdb.org/t/p/") or b_clean.startswith("http"):
+                item["backdrop_path"] = b_clean
+            elif b_clean.startswith("/"):
+                item["backdrop_path"] = f"https://image.tmdb.org/t/p/w1280{b_clean}"
+            else:
+                item["backdrop_path"] = item["poster_path"]
+        else:
+            item["backdrop_path"] = item["poster_path"]
         return item
 
     @classmethod
@@ -202,3 +236,90 @@ class CatalogRepository:
 
         cls.save_all_raw(raw_items)
         return cls._to_app_dict(record)
+
+
+class ContentRequestRepository:
+    """
+    Kullanıcıların katalogda bulamadıkları yapımlar için gönderdikleri
+    Film / Dizi / Animasyon taleplerini `data/requests.json` dosyasında yönetir.
+    Şema: id, title, media_type, year, note, requested_by, created_at, status ('pending'), request_count.
+    """
+
+    @staticmethod
+    def _get_requests_file_path() -> Path:
+        base_dir = Path(__file__).resolve().parent.parent.parent.parent
+        return base_dir / "data" / "requests.json"
+
+    @classmethod
+    def _ensure_storage(cls) -> Path:
+        path = cls._get_requests_file_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if not path.exists():
+            path.write_text("[]", encoding="utf-8")
+        return path
+
+    @classmethod
+    def get_all(cls) -> List[Dict[str, Any]]:
+        path = cls._ensure_storage()
+        try:
+            raw = path.read_text(encoding="utf-8").strip()
+            data = json.loads(raw) if raw else []
+            return data if isinstance(data, list) else []
+        except (json.JSONDecodeError, OSError):
+            return []
+
+    @classmethod
+    def _save_all(cls, items: List[Dict[str, Any]]) -> None:
+        path = cls._ensure_storage()
+        temp_path = path.with_suffix(".tmp")
+        temp_path.write_text(
+            json.dumps(items, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        os.replace(temp_path, path)
+
+    @classmethod
+    def create_or_increment_request(
+        cls,
+        title: str,
+        media_type: str = "Film",
+        year: str = "",
+        note: str = "",
+        requested_by: str = "misafir",
+    ) -> Tuple[Dict[str, Any], bool]:
+        """
+        Yeni bir film/dizi talebi kaydeder.
+        Aynı yapım için mükerrer talep gönderilirse `request_count` sayacını artırır
+        ve `(record, is_duplicate=True)` döndürür.
+        """
+        from app.core.utils import normalize_search_text
+        import uuid
+
+        clean_title = (title or "").strip()
+        norm_title = normalize_search_text(clean_title)
+        items = cls.get_all()
+        now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        for item in items:
+            if normalize_search_text(item.get("title", "")) == norm_title:
+                item["request_count"] = int(item.get("request_count", 1)) + 1
+                item["updated_at"] = now_iso
+                if note and not item.get("note"):
+                    item["note"] = note.strip()
+                cls._save_all(items)
+                return item, True
+
+        new_record: Dict[str, Any] = {
+            "id": f"req_{uuid.uuid4().hex[:8]}",
+            "title": clean_title,
+            "media_type": (media_type or "Film").strip(),
+            "year": (str(year).strip() if year else ""),
+            "note": (note or "").strip(),
+            "requested_by": requested_by,
+            "created_at": now_iso,
+            "status": "pending",
+            "request_count": 1,
+        }
+        items.insert(0, new_record)
+        cls._save_all(items)
+        return new_record, False

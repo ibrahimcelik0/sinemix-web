@@ -5,7 +5,7 @@
         <li>
             <a href="{{ url_for('catalog.discover') }}"
                class="{{ 'nav-active' if active_page == 'discover' else '' }}">
-                🔍 Keşfet & Ekle
+                🔍 Keşfet
             </a>
         </li>
         {% if current_user %}
@@ -26,29 +26,27 @@
     </ul>
 
     <div class="navbar-right-cluster">
-        <div class="search-box">
-            <div class="search-input-wrapper">
-                <input type="text" id="filmSearchInput" placeholder="Film veya dizi ara..." autocomplete="off">
-                <button type="button" id="searchClearBtn" class="search-clear-btn" aria-label="Aramayı temizle" hidden>✕</button>
-            </div>
-            <a href="{{ url_for('catalog.discover') if request.endpoint == 'main.filtre' else url_for('main.filtre') }}"
-               id="filterPageBtn"
-               class="filter-toggle-btn {{ 'is-active' if request.endpoint == 'main.filtre' else '' }}"
-               title="{{ 'Filtreyi Kapat' if request.endpoint == 'main.filtre' else 'Gelişmiş Filtre Sayfasını Aç' }}">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="4" y1="21" x2="4" y2="14"></line>
-                    <line x1="4" y1="10" x2="4" y2="3"></line>
-                    <line x1="12" y1="21" x2="12" y2="12"></line>
-                    <line x1="12" y1="8" x2="12" y2="3"></line>
-                    <line x1="20" y1="21" x2="20" y2="16"></line>
-                    <line x1="20" y1="12" x2="20" y2="3"></line>
-                    <line x1="1" y1="14" x2="7" y2="14"></line>
-                    <line x1="9" y1="8" x2="15" y2="8"></line>
-                    <line x1="17" y1="16" x2="23" y2="16"></line>
-                </svg>
-                <span>Filtrele</span>
-            </a>
-        </div>
+        <button type="button" class="btn-request-content open-request-modal-btn" title="Katalogda olmayan bir film veya dizi talep et">
+            🎬 Film / Dizi Talep Et
+        </button>
+
+        <a href="{{ url_for('catalog.discover') if request.endpoint == 'main.filtre' else url_for('main.filtre') }}"
+           id="filterPageBtn"
+           class="filter-toggle-btn {{ 'is-active' if request.endpoint == 'main.filtre' else '' }}"
+           title="{{ 'Filtreyi Kapat' if request.endpoint == 'main.filtre' else 'Detaylı Filtre Sayfasını Aç' }}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" y1="21" x2="4" y2="14"></line>
+                <line x1="4" y1="10" x2="4" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12" y2="3"></line>
+                <line x1="20" y1="21" x2="20" y2="16"></line>
+                <line x1="20" y1="12" x2="20" y2="3"></line>
+                <line x1="1" y1="14" x2="7" y2="14"></line>
+                <line x1="9" y1="8" x2="15" y2="8"></line>
+                <line x1="17" y1="16" x2="23" y2="16"></line>
+            </svg>
+            <span>Detaylı Filtre</span>
+        </a>
 
         {% if current_user %}
             <div class="nav-user-menu">
@@ -106,5 +104,69 @@
         </div>
     {% endif %}
 {% endwith %}
+
+<!-- Global "🎬 Film / Dizi Talep Et" Glassmorphism Modalı (data/requests.json) -->
+<div id="contentRequestModal" class="glass-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="requestModalTitle" hidden>
+    <div class="glass-modal-dialog request-modal-dialog">
+        <button type="button" id="closeRequestModalBtn" class="glass-modal-close" aria-label="Pencereyi Kapat">×</button>
+
+        <div class="request-modal-header">
+            <span class="auth-logo-badge">🎬 SineMix İstek Kutusu</span>
+            <h2 id="requestModalTitle" class="glass-modal-title">Film / Dizi Talep Et</h2>
+            <p class="glass-modal-subtitle">
+                434 yapımlık katalogda bulamadığın bir film, dizi veya animasyonu bize bildir; en kısa sürede kataloğa ekleyelim.
+            </p>
+        </div>
+
+        <form id="contentRequestForm" class="auth-form">
+            <div class="auth-form-group">
+                <label for="reqTitleInput">Yapım Adı *</label>
+                <input type="text"
+                       id="reqTitleInput"
+                       name="title"
+                       placeholder="Örn: The Prestige, Arcane, Attack on Titan..."
+                       required>
+            </div>
+
+            <div class="request-form-row">
+                <div class="auth-form-group">
+                    <label for="reqTypeSelect">Türü</label>
+                    <select id="reqTypeSelect" name="media_type" class="filter-select" style="width: 100%; padding: 12px 14px;">
+                        <option value="Film" selected>🎬 Film</option>
+                        <option value="Dizi">📺 Dizi</option>
+                        <option value="Animasyon">✨ Animasyon / Anime</option>
+                    </select>
+                </div>
+
+                <div class="auth-form-group">
+                    <label for="reqYearInput">Çıkış Yılı (Opsiyonel)</label>
+                    <input type="number"
+                           id="reqYearInput"
+                           name="year"
+                           placeholder="Örn: 2024"
+                           min="1900"
+                           max="2030">
+                </div>
+            </div>
+
+            <div class="auth-form-group">
+                <label for="reqNoteInput">Kısa Not (Opsiyonel)</label>
+                <textarea id="reqNoteInput"
+                          name="note"
+                          rows="3"
+                          class="request-note-textarea"
+                          placeholder="Yönetmen, sezon bilgisi veya eklemek istediğiniz kısa bir not..."></textarea>
+            </div>
+
+            <div id="requestFeedbackAlert" class="request-feedback-box" hidden></div>
+
+            <div class="request-modal-actions">
+                <button type="submit" id="submitRequestBtn" class="auth-submit-btn">
+                    📨 Talebi Gönder
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <div id="toastNotification" class="toast-notification" hidden></div>

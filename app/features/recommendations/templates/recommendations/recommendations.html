@@ -10,25 +10,21 @@
 
 {% block content %}
     <div class="platform-container">
-        <header class="section-hero">
+        <header class="section-hero compact-hero">
             <div class="hero-left">
-                <div class="api-status-pill">
+                <h1 class="section-main-title">✨ Sana Özel Öneriler</h1>
+                <span class="api-status-pill">
                     <span class="status-dot {{ 'live' if current_user else 'local' }}"></span>
                     {% if current_user %}
-                        SineMix Kalıcı Öneri Motoru • Hesap: @{{ current_user.username }}
+                        Aktif Hesap: <code>@{{ current_user.username }}</code> ({{ watchlist_count }} izlenen yapım)
                     {% else %}
-                        Misafir / Geçici Demo Modu (Bellek İçi • F5'te Sıfırlanır)
+                        Misafir Modu
                     {% endif %}
-                </div>
-                <h1 class="section-main-title">✨ Sana Özel Film & Dizi Önerileri</h1>
-                <p class="section-subtitle">İzleme listendeki puanlarına göre oluşturulan ilgi profilinle en yüksek uyumu yakalayan yapımlar <strong>% Eşleşme Skoru</strong> sırasıyla listelenir.</p>
+                </span>
             </div>
             <div class="hero-actions">
-                <button type="button" id="seedFromRecsBtn" class="btn-secondary-action">
-                    ⚡ Örnek Veri Yükle & Test Et
-                </button>
                 <button type="button" id="clearWatchlistBtn" class="btn-danger-action" {{ 'hidden' if watchlist_count == 0 else '' }}>
-                    🗑️ Listeyi Sıfırla
+                    🗑️ Sıfırla
                 </button>
                 {% if current_user %}
                     <a href="{{ url_for('watchlist.watchlist_page') }}" class="back-home-pill">
@@ -36,56 +32,79 @@
                     </a>
                 {% else %}
                     <a href="{{ url_for('auth.login', next=request.path) }}" class="btn-gold-action">
-                        🔐 Kalıcı Tutmak İçin Oturum Aç
+                        🔐 Oturum Aç
                     </a>
                 {% endif %}
             </div>
         </header>
 
-        <!-- İlgi Profili Özeti (Dinamik / Sunucu) -->
-        <section class="profile-summary-card" id="recsProfileSummaryCard" {{ 'hidden' if watchlist_empty else '' }}>
-            <div class="taste-profile-bars" style="border-top: none; padding-top: 0; margin-top: 0;">
-                <div class="taste-group">
-                    <span class="taste-title">🎯 Favori Tür Ağırlıkların:</span>
-                    <div class="taste-chips" id="recsFavoriteGenresChips">
-                        {% for g in profile.favorite_genres %}
-                            <span class="taste-chip positive">{{ g.name }} <small>+{{ g.weight }}</small></span>
-                        {% endfor %}
-                        {% for g in profile.disliked_genres %}
-                            <span class="taste-chip negative">{{ g.name }} <small>{{ g.weight }}</small></span>
-                        {% endfor %}
-                    </div>
+        <section class="profile-summary-card compact-summary-bar" id="recsProfileSummaryCard" {{ 'hidden' if watchlist_empty else '' }}>
+            <div class="taste-group">
+                <span class="taste-title">🎯 Favori Türlerin:</span>
+                <div class="taste-chips" id="recsFavoriteGenresChips">
+                    {% for g in profile.favorite_genres %}
+                        <span class="taste-chip positive">{{ g.name }} <small>+{{ g.weight }}</small></span>
+                    {% endfor %}
+                    {% for g in profile.disliked_genres %}
+                        <span class="taste-chip negative">{{ g.name }} <small>{{ g.weight }}</small></span>
+                    {% endfor %}
                 </div>
-                <div class="taste-group">
-                    <span class="taste-title">🔑 Eşleşen Anahtar Kelimeler:</span>
-                    <div class="taste-chips" id="recsFavoriteKeywordsChips">
-                        {% for kw in profile.favorite_keywords[:8] %}
-                            <span class="taste-chip keyword">#{{ kw.name }} <small>+{{ kw.weight }}</small></span>
-                        {% endfor %}
-                    </div>
+            </div>
+            <div class="taste-group">
+                <span class="taste-title">🔑 Ortak Temalar:</span>
+                <div class="taste-chips" id="recsFavoriteKeywordsChips">
+                    {% for kw in profile.favorite_keywords[:8] %}
+                        <span class="taste-chip keyword">#{{ kw.name }} <small>+{{ kw.weight }}</small></span>
+                    {% endfor %}
                 </div>
             </div>
         </section>
 
-        <!-- Film ve Dizi Ayrımı Segmented Control Bar -->
-        <div class="section-tabs-bar" id="recsSegmentedBar" {{ 'hidden' if not recommendations else '' }}>
-            <div class="segmented-control" id="mediaSegmentedControl" role="tablist" aria-label="Öneri Kategori Filtresi">
-                <button type="button" class="segment-btn active" data-media-filter="ALL" role="tab" aria-selected="true">
-                    <span>Tümü</span>
-                    <span class="segment-count" data-count-for="ALL">{{ recommendations|length }}</span>
-                </button>
-                <button type="button" class="segment-btn" data-media-filter="movie" role="tab" aria-selected="false">
-                    <span>🎬 Filmler</span>
-                    <span class="segment-count" data-count-for="movie">{{ recommendations|selectattr('media_type', 'equalto', 'movie')|list|length }}</span>
-                </button>
-                <button type="button" class="segment-btn" data-media-filter="tv" role="tab" aria-selected="false">
-                    <span>📺 Diziler</span>
-                    <span class="segment-count" data-count-for="tv">{{ recommendations|selectattr('media_type', 'equalto', 'tv')|list|length }}</span>
-                </button>
+        <!-- Tek Parça Yatay Kontrol Çubuğu -->
+        <div class="unified-search-filter-bar" id="recsSegmentedBar" {{ 'hidden' if not recommendations else '' }}>
+            <div class="unified-search-left">
+                <svg class="unified-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text"
+                       id="watchlistQuickSearchInput"
+                       class="unified-search-input"
+                       placeholder="Önerilen yapımlar içinde ara..."
+                           autocomplete="off">
+            </div>
+
+            <div class="unified-filter-right">
+                <div class="segmented-control" id="mediaSegmentedControl" role="tablist" aria-label="Öneri Kategori Filtresi">
+                    <button type="button" class="segment-btn active" data-media-filter="ALL" role="tab" aria-selected="true">
+                        <span>Tümü</span>
+                        <span class="segment-count" data-count-for="ALL">{{ recommendations|length }}</span>
+                    </button>
+                    <button type="button" class="segment-btn" data-media-filter="movie" role="tab" aria-selected="false">
+                        <span>Filmler</span>
+                        <span class="segment-count" data-count-for="movie">{{ recommendations|selectattr('media_type', 'equalto', 'movie')|list|length }}</span>
+                    </button>
+                    <button type="button" class="segment-btn" data-media-filter="tv" role="tab" aria-selected="false">
+                        <span>Diziler</span>
+                        <span class="segment-count" data-count-for="tv">{{ recommendations|selectattr('media_type', 'equalto', 'tv')|list|length }}</span>
+                    </button>
+                </div>
+
+                <div class="view-mode-switcher" id="viewModeSwitcher" role="group" aria-label="Görünüm Düzeni Seçici">
+                    <button type="button" class="view-mode-btn active" data-view-mode="grid" title="Posterli Kart (Grid) Görünümü">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg>
+                        <span>Kart</span>
+                    </button>
+                    <button type="button" class="view-mode-btn" data-view-mode="bar" title="Yatay Çubuk (Liste) Görünümü">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                        <span>Çubuk</span>
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div class="catalog-grid" id="recommendationsGrid">
+        <!-- Öneri Kartları (Varsayılan: 2:3 Posterli Kart Grid • Seçilebilir: Çubuk Görünümü) -->
+        <div class="catalog-grid view-grid" id="recommendationsGrid" data-page-size="20">
             {% for item in recommendations %}
                 <article class="media-card recommendation-card"
                          data-tmdb-id="{{ item.tmdb_id }}"
@@ -100,6 +119,7 @@
                          data-keywords='{{ item.keywords | tojson }}'
                          data-matched-keywords='{{ item.matched_keywords | tojson }}'
                          data-seed-sources='{{ (item.seed_sources or []) | tojson }}'>
+
                     <div class="media-poster-wrap">
                         <span class="media-badge-type {{ item.media_type }}">
                             {{ 'DİZİ' if item.media_type == 'tv' else 'FİLM' }}
@@ -110,19 +130,20 @@
                         </div>
 
                         <div class="watched-ribbon" hidden>
-                            ✓ Listene Eklendi: <strong class="user-rating-val"></strong>/10
+                            ✓ İzlendi (<strong class="user-rating-val"></strong>/10)
                         </div>
 
                         <a href="{{ url_for('catalog.detail', media_type=item.media_type, tmdb_id=item.tmdb_id) }}" class="poster-link">
-                            <img src="{{ item.poster_path }}" alt="{{ item.title }}" loading="lazy">
+                            <img src="{{ item.poster_path or '/static/img/no-poster.svg' }}" alt="{{ item.title }}" loading="lazy" onerror="this.onerror=null;this.src='/static/img/no-poster.svg';">
                         </a>
                     </div>
 
                     <div class="media-card-body">
                         <div class="media-meta-row">
-                            <span class="tmdb-score">⭐ {{ item.vote_average }} <small>({{ item.release_year }})</small></span>
+                            <span class="tmdb-score">⭐ {{ item.vote_average }}</span>
+                            <span class="card-year-inline">{{ item.release_year }}</span>
                             <div class="genre-tags">
-                                {% for g in item.genres[:3] %}
+                                {% for g in item.genres[:2] %}
                                     <span class="genre-tag {{ 'matched' if g in item.matched_genres else '' }}">{{ g }}</span>
                                 {% endfor %}
                             </div>
@@ -142,13 +163,14 @@
 
                         <div class="quick-rate-box">
                             <div class="quick-rate-header">
-                                <span class="rate-label">İzledin mi? Puan Ver & Listeye Ekle:</span>
+                                <span class="rate-label">İzledim (Puanla):</span>
                             </div>
                             <div class="rating-number-bar">
                                 {% for r in range(1, 11) %}
                                     <button type="button"
                                             class="rate-num-btn {{ 'low-rate' if r < 5 else ('high-rate' if r >= 8 else '') }}"
-                                            data-rating="{{ r }}">
+                                            data-rating="{{ r }}"
+                                            title="İzledim ({{ r }}/10 Puan)">
                                         {{ r }}
                                     </button>
                                 {% endfor %}
@@ -159,28 +181,18 @@
             {% endfor %}
         </div>
 
+        <nav id="numberedPaginationBar" class="numbered-pagination-bar" aria-label="Sayfalama"></nav>
+
         <div id="tabEmptyState" class="empty-filter-state" hidden>
             <div class="empty-icon">🎬</div>
             <h3>Bu Kategoride Öneri Bulunamadı</h3>
-            <p>Diğer sekmeye geçiş yaparak önerileri görüntüleyebilirsiniz.</p>
         </div>
 
         <div id="recsEmptyStateBox" class="empty-filter-state" {{ '' if not recommendations else 'hidden' }}>
             <div class="empty-icon">✨</div>
-            <h3>Henüz Puanlanmış Yapım Bulunmuyor</h3>
-            <p>
-                {% if current_user %}
-                    Öneri algoritmasını çalıştırmak için örnek veri yükleyebilir veya Keşfet sayfasından yapımlara puan verebilirsiniz.
-                {% else %}
-                    <strong>Misafir Modundasınız:</strong> Sayfa her açıldığında veya yenilendiğinde (<kbd>F5</kbd>) liste sıfırdan (boş) başlar. Algoritmayı geçici olarak test etmek için <strong>"⚡ Örnek İzleme Listesi Yükle"</strong> butonuna tıklayabilir veya kalıcı liste için <strong>Oturum Açabilirsiniz</strong>.
-                {% endif %}
-            </p>
-            <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                <button type="button" id="emptySeedRecsBtn" class="empty-reset-btn">⚡ Örnek İzleme Listesi Yükle (Test Et)</button>
-                <a href="{{ url_for('catalog.discover') }}" class="back-home-pill">🔍 Keşfet & Puan Ver</a>
-                {% if not current_user %}
-                    <a href="{{ url_for('auth.login', next=request.path) }}" class="btn-secondary-action">🔐 Oturum Aç</a>
-                {% endif %}
+            <h3>Öneri Üretmek İçin İzlediğiniz Yapımları Puanlayın</h3>
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 14px;">
+                <a href="{{ url_for('catalog.discover') }}" class="btn-gold-action">🔍 Keşfet'e Git ve Puanla</a>
             </div>
         </div>
     </div>

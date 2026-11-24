@@ -3030,3 +3030,759 @@ body.page-home {
     gap: 16px;
     margin-bottom: 22px;
 }
+
+
+/* ==========================================================================
+   "Çubuk Tarzı" (Horizontal Bar / Row) Kompakt Liste Yerleşim Düzeni
+   ========================================================================== */
+.section-hero.compact-hero {
+    padding: 14px 20px;
+    margin-bottom: 14px;
+    border-radius: 12px;
+    align-items: center;
+}
+
+.section-hero.compact-hero .hero-left {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.section-hero.compact-hero .section-main-title {
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.section-hero.compact-hero .api-status-pill {
+    margin-bottom: 0;
+}
+
+.profile-summary-card.compact-summary-bar {
+    padding: 12px 18px;
+    margin-bottom: 14px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 18px;
+}
+
+.discover-toolbar {
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    border-radius: 12px;
+    gap: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.discover-search-wrap {
+    flex: 1 1 280px;
+}
+
+.discover-search-wrap input {
+    padding: 9px 14px 9px 38px;
+    border-radius: 9px;
+    font-size: 0.85rem;
+}
+
+.segmented-control {
+    padding: 3px;
+    border-radius: 10px;
+    gap: 4px;
+}
+
+.segment-btn {
+    padding: 6px 13px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+}
+
+.filter-select {
+    padding: 8px 32px 8px 12px;
+    border-radius: 9px;
+    font-size: 0.82rem;
+}
+
+/* Yatay Çubuk (Horizontal Bar) Satır Listesi */
+.catalog-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.media-card.media-bar-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    background: linear-gradient(90deg, rgba(22, 22, 32, 0.92) 0%, rgba(15, 15, 23, 0.96) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.media-card.media-bar-row:hover {
+    transform: translateX(3px);
+    border-color: rgba(245, 197, 24, 0.42);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+.media-card.media-bar-row.is-in-watchlist {
+    border-color: rgba(16, 185, 129, 0.45);
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 15, 23, 0.96) 35%);
+}
+
+/* 1. SOL: 45x68 Küçük Poster + Başlık, Yıl ve Tür Rozetleri */
+.bar-left {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-width: 270px;
+    max-width: 340px;
+    flex: 0 0 310px;
+}
+
+.bar-thumb-link {
+    display: block;
+    width: 45px;
+    height: 68px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #12121a;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.bar-thumb-img {
+    width: 45px;
+    height: 68px;
+    object-fit: cover;
+    display: block;
+}
+
+.bar-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+
+.bar-title-line {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.media-bar-row .media-title {
+    margin: 0;
+    font-size: 0.96rem;
+    font-weight: 600;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 205px;
+}
+
+.bar-year {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.media-bar-row .genre-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.media-bar-row .genre-tag {
+    font-size: 0.68rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.75);
+}
+
+/* 2. ORTA: Film/Dizi Etiketi ve Tek Satır Kısa Özet */
+.bar-center {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.media-bar-row .media-badge-type {
+    position: static;
+    flex-shrink: 0;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    box-shadow: none;
+}
+
+.media-bar-row .media-overview {
+    margin: 0;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.62);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    -webkit-line-clamp: unset;
+}
+
+/* 3. SAĞ: TMDB Puanı, % Eşleşme, Puan Seçici ve Aksiyon Butonları */
+.bar-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.media-bar-row .tmdb-score {
+    font-size: 0.78rem;
+    padding: 3px 9px;
+    white-space: nowrap;
+}
+
+.media-bar-row .match-score-badge {
+    position: static;
+    padding: 4px 10px;
+    font-size: 0.76rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    box-shadow: none;
+}
+
+.media-bar-row .why-modal-trigger-btn {
+    width: auto;
+    margin: 0;
+    padding: 5px 11px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.media-bar-row .watched-ribbon {
+    position: static;
+    padding: 4px 10px;
+    font-size: 0.74rem;
+    border-radius: 8px;
+    white-space: nowrap;
+    box-shadow: none;
+}
+
+.media-bar-row .quick-rate-box {
+    margin: 0;
+    padding: 0;
+    border-top: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.media-bar-row .rate-label {
+    font-size: 0.73rem;
+    white-space: nowrap;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.media-bar-row .rating-number-bar {
+    display: inline-flex;
+    gap: 3px;
+}
+
+.media-bar-row .rate-num-btn {
+    width: 23px;
+    height: 24px;
+    border-radius: 5px;
+    font-size: 0.71rem;
+}
+
+.live-recommendations-panel {
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    border-radius: 12px;
+}
+
+.live-recs-header {
+    margin-bottom: 12px;
+}
+
+@media (max-width: 1080px) {
+    .media-card.media-bar-row {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .bar-left {
+        flex: 1 1 260px;
+        max-width: none;
+    }
+
+    .bar-center {
+        flex: 1 1 100%;
+        order: 3;
+    }
+
+    .bar-right {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+}
+
+
+/* ==========================================================================
+   1. Tek Parça Belirgin Yatay Arama & Filtre Çubuğu (Unified Search & Filter Bar)
+   ========================================================================== */
+.unified-search-filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 12px 18px;
+    margin-bottom: 24px;
+    border-radius: 16px;
+    background: linear-gradient(145deg, rgba(22, 22, 34, 0.94) 0%, rgba(14, 14, 22, 0.98) 100%);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1.5px solid rgba(245, 197, 24, 0.28);
+    box-shadow:
+        0 14px 34px rgba(0, 0, 0, 0.55),
+        0 0 24px rgba(245, 197, 24, 0.06);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.unified-search-filter-bar:focus-within {
+    border-color: rgba(245, 197, 24, 0.72);
+    box-shadow:
+        0 16px 38px rgba(0, 0, 0, 0.65),
+        0 0 0 4px rgba(245, 197, 24, 0.14);
+}
+
+.unified-search-left {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1 1 320px;
+    min-width: 240px;
+}
+
+.unified-search-icon {
+    position: absolute;
+    left: 14px;
+    color: #f5c518;
+    pointer-events: none;
+}
+
+.unified-search-input {
+    width: 100%;
+    padding: 11px 36px 11px 42px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.42);
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.92rem;
+    font-weight: 500;
+    outline: none;
+    transition: all 0.22s ease;
+}
+
+.unified-search-input::placeholder {
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.unified-search-input:focus {
+    background: rgba(0, 0, 0, 0.65);
+    border-color: rgba(245, 197, 24, 0.55);
+}
+
+.unified-search-clear {
+    position: absolute;
+    right: 10px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.16);
+    color: #ffffff;
+    font-size: 0.72rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.unified-search-clear[hidden] {
+    display: none;
+}
+
+.unified-filter-right {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.unified-select {
+    height: 38px;
+    padding: 0 34px 0 13px;
+    border-radius: 10px;
+    font-size: 0.83rem;
+}
+
+/* Görünüm Seçici (Kart Grid vs. Çubuk Liste) */
+.view-mode-switcher {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.42);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    gap: 3px;
+}
+
+.view-mode-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 11px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.68);
+    font-family: inherit;
+    font-size: 0.79rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.view-mode-btn:hover {
+    color: #ffffff;
+}
+
+.view-mode-btn.active {
+    background: #f5c518;
+    color: #0a0a0f;
+    box-shadow: 0 2px 10px rgba(245, 197, 24, 0.35);
+}
+
+/* ==========================================================================
+   2. Klasik 2:3 Posterli Kart (Grid - Varsayılan) vs. Seçilebilir Çubuk (Bar)
+   ========================================================================== */
+.catalog-grid,
+.catalog-grid.view-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
+    gap: 22px;
+}
+
+.catalog-grid.view-grid .media-card {
+    display: flex;
+    flex-direction: column;
+    border-radius: 16px;
+    background: linear-gradient(165deg, rgba(26, 26, 38, 0.9) 0%, rgba(14, 14, 21, 0.97) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    overflow: hidden;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.48);
+}
+
+.catalog-grid.view-grid .media-poster-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    overflow: hidden;
+    background: #12121a;
+}
+
+.catalog-grid.view-grid .card-year-inline {
+    display: none;
+}
+
+/* Seçilebilir Çubuk (Horizontal Bar) Modu: .catalog-grid.view-bar */
+.catalog-grid.view-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.catalog-grid.view-bar .media-card {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    background: linear-gradient(90deg, rgba(22, 22, 34, 0.94) 0%, rgba(14, 14, 22, 0.97) 100%);
+}
+
+.catalog-grid.view-bar .media-card:hover {
+    transform: translateX(4px);
+}
+
+.catalog-grid.view-bar .media-poster-wrap {
+    width: 48px;
+    height: 72px;
+    aspect-ratio: auto;
+    border-radius: 7px;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.catalog-grid.view-bar .media-poster-wrap::after,
+.catalog-grid.view-bar .media-badge-year,
+.catalog-grid.view-bar .media-poster-wrap .watched-ribbon,
+.catalog-grid.view-bar .media-poster-wrap .match-score-badge {
+    display: none;
+}
+
+.catalog-grid.view-bar .media-poster-wrap .media-badge-type {
+    top: 3px;
+    left: 3px;
+    padding: 1px 5px;
+    font-size: 0.56rem;
+    border-radius: 4px;
+}
+
+.catalog-grid.view-bar .media-card-body {
+    margin-top: 0;
+    padding: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-width: 0;
+}
+
+.catalog-grid.view-bar .media-meta-row {
+    margin-bottom: 0;
+    order: 2;
+    flex-shrink: 0;
+}
+
+.catalog-grid.view-bar .card-year-inline {
+    display: inline-block;
+    font-size: 0.76rem;
+    color: rgba(255, 255, 255, 0.52);
+}
+
+.catalog-grid.view-bar .media-title {
+    margin: 0;
+    order: 1;
+    font-size: 1rem;
+    min-width: 170px;
+    max-width: 240px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.catalog-grid.view-bar .media-overview {
+    margin: 0;
+    order: 2;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    -webkit-line-clamp: unset;
+}
+
+.catalog-grid.view-bar .why-modal-trigger-btn {
+    order: 3;
+    width: auto;
+    margin: 0;
+    padding: 6px 11px;
+    flex-shrink: 0;
+}
+
+.catalog-grid.view-bar .quick-rate-box {
+    order: 4;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.catalog-grid.view-bar .quick-rate-header {
+    margin-bottom: 0;
+}
+
+.catalog-grid.view-bar .rating-number-bar {
+    display: inline-flex;
+    gap: 3px;
+}
+
+.catalog-grid.view-bar .rate-num-btn {
+    width: 23px;
+    height: 24px;
+}
+
+/* ==========================================================================
+   3. Sayfa Başına 20 Film Numaralı Sayfalama (Numbered Pagination)
+   ========================================================================== */
+.numbered-pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 34px auto 18px;
+    padding: 14px 20px;
+}
+
+.numbered-pagination-bar[hidden] {
+    display: none;
+}
+
+.page-nav-btn {
+    min-width: 38px;
+    height: 38px;
+    padding: 0 13px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(22, 22, 34, 0.85);
+    color: rgba(255, 255, 255, 0.85);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.page-nav-btn:hover:not(:disabled) {
+    border-color: #f5c518;
+    background: rgba(245, 197, 24, 0.16);
+    color: #ffffff;
+}
+
+.page-nav-btn.active {
+    background: #f5c518;
+    border-color: #f5c518;
+    color: #0a0a0f;
+    font-weight: 700;
+    box-shadow: 0 4px 14px rgba(245, 197, 24, 0.35);
+}
+
+.page-nav-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.page-summary-label {
+    margin-left: 10px;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+/* ==========================================================================
+   4. "🎬 Film / Dizi Talep Et" Butonu ve Glassmorphism Modalı
+   ========================================================================== */
+.btn-request-content {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 15px;
+    border-radius: 999px;
+    border: 1px solid rgba(16, 185, 129, 0.45);
+    background: rgba(16, 185, 129, 0.13);
+    color: #6ee7b7;
+    font-family: inherit;
+    font-size: 0.83rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-request-content:hover {
+    background: rgba(16, 185, 129, 0.25);
+    border-color: #10b981;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.request-cta-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin: 22px auto 10px;
+    padding: 16px 24px;
+    border-radius: 14px;
+    background: rgba(20, 20, 32, 0.72);
+    border: 1px dashed rgba(255, 255, 255, 0.14);
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.request-modal-dialog {
+    max-width: 520px;
+}
+
+.request-modal-header {
+    margin-bottom: 20px;
+}
+
+.request-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.request-note-textarea {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.4);
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.88rem;
+    resize: vertical;
+    outline: none;
+}
+
+.request-note-textarea:focus {
+    border-color: rgba(245, 197, 24, 0.7);
+}
+
+.request-feedback-box {
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: rgba(16, 185, 129, 0.16);
+    border: 1px solid rgba(16, 185, 129, 0.45);
+    color: #6ee7b7;
+    font-size: 0.86rem;
+    font-weight: 600;
+}
+
+.request-feedback-box[hidden] {
+    display: none;
+}
