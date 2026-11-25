@@ -286,16 +286,19 @@ class ContentRequestRepository:
         year: str = "",
         note: str = "",
         requested_by: str = "misafir",
+        requester_email: str = "",
     ) -> Tuple[Dict[str, Any], bool]:
         """
-        Yeni bir film/dizi talebi kaydeder.
+        Yeni bir film/dizi talebi kaydeder (`requested_by` kullanıcı adı ve `requester_email` e-posta bilgisiyle).
         Aynı yapım için mükerrer talep gönderilirse `request_count` sayacını artırır
         ve `(record, is_duplicate=True)` döndürür.
         """
         from app.core.utils import normalize_search_text
-        import uuid
+        import secrets
 
         clean_title = (title or "").strip()
+        clean_username = (requested_by or "misafir").strip().lstrip("@")
+        clean_email = (requester_email or "").strip().lower()
         norm_title = normalize_search_text(clean_title)
         items = cls.get_all()
         now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -304,18 +307,24 @@ class ContentRequestRepository:
             if normalize_search_text(item.get("title", "")) == norm_title:
                 item["request_count"] = int(item.get("request_count", 1)) + 1
                 item["updated_at"] = now_iso
+                item["requested_by"] = clean_username
+                item["requester_username"] = clean_username
+                if clean_email:
+                    item["requester_email"] = clean_email
                 if note and not item.get("note"):
                     item["note"] = note.strip()
                 cls._save_all(items)
                 return item, True
 
         new_record: Dict[str, Any] = {
-            "id": f"req_{uuid.uuid4().hex[:8]}",
+            "id": str(secrets.randbelow(90000000) + 10000000),
             "title": clean_title,
             "media_type": (media_type or "Film").strip(),
             "year": (str(year).strip() if year else ""),
             "note": (note or "").strip(),
-            "requested_by": requested_by,
+            "requested_by": clean_username,
+            "requester_username": clean_username,
+            "requester_email": clean_email,
             "created_at": now_iso,
             "status": "pending",
             "request_count": 1,

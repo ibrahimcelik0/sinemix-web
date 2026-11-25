@@ -174,6 +174,9 @@ def send_otp_email(
     6 haneli OTP doğrulama kodunu `smtplib` (STARTTLS) üzerinden gerçek e-posta olarak gönderir.
     `.env` ayarlı değilse veya yerel ortamda bağlantı kurulamazsa çökmeden kodu terminal konsoluna yazdırır.
     """
+    from app.config import refresh_dotenv_variables
+    refresh_dotenv_variables()
+
     smtp_host = (os.environ.get("SMTP_HOST", "smtp.gmail.com") or "smtp.gmail.com").strip()
     smtp_port_raw = (os.environ.get("SMTP_PORT", "587") or "587").strip()
     try:
@@ -650,3 +653,119 @@ def login_required(view_func: Callable) -> Callable:
         return view_func(*args, **kwargs)
 
     return wrapped_view
+
+
+
+def send_content_request_admin_email(request_record: Dict[str, Any]) -> Tuple[bool, str]:
+    """
+    Kullanıcının gönderdiği Film / Dizi talebini (Kullanıcı Adı, E-Posta, Yapım Adı, Tür, Yıl, Not)
+    `.env` içerisindeki `ADMIN_EMAIL` (veya `SMTP_USER`) adresine `smtplib` ile e-posta olarak gönderir.
+    """
+    from app.config import refresh_dotenv_variables
+    refresh_dotenv_variables()
+
+    smtp_host = (os.environ.get("SMTP_HOST", "smtp.gmail.com") or "smtp.gmail.com").strip()
+    smtp_port_raw = (os.environ.get("SMTP_PORT", "587") or "587").strip()
+    try:
+        smtp_port = int(smtp_port_raw)
+    except ValueError:
+        smtp_port = 587
+
+    smtp_user = (os.environ.get("SMTP_USER", "") or "").strip()
+    smtp_pass = (os.environ.get("SMTP_PASS", "") or "").strip()
+    admin_email = (os.environ.get("ADMIN_EMAIL", "") or smtp_user).strip()
+
+    title = request_record.get("title", "Bilinmeyen Yapım")
+    media_type = request_record.get("media_type", "Film")
+    year = request_record.get("year") or "Belirtilmedi"
+    note = request_record.get("note") or "Yok"
+    requester_username = request_record.get("requester_username") or request_record.get("requested_by") or "misafir"
+    requester_email = request_record.get("requester_email") or "Belirtilmedi"
+    req_count = request_record.get("request_count", 1)
+    created_at = request_record.get("created_at", "")
+
+    if smtp_user and smtp_pass and admin_email:
+        try:
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = f"[SineMix İçerik Talebi] {title} ({media_type}) - @{requester_username}"
+            msg["From"] = f"SineMix İstek Kutusu <{smtp_user}>"
+            msg["To"] = admin_email
+            if "@" in requester_email:
+                msg["Reply-To"] = requester_email
+
+            text_body = (
+                f"SineMix Yeni Film / Dizi Talebi\n"
+                f"====================================\n"
+                f"Yapım Adı      : {title}\n"
+                f"Türü           : {media_type}\n"
+                f"Çıkış Yılı     : {year}\n"
+                f"Talep Eden     : @{requester_username}\n"
+                f"Kullanıcı Mail : {requester_email}\n"
+                f"Kısa Not       : {note}\n"
+                f"Talep Sayısı   : {req_count}\n"
+                f"Tarih          : {created_at}\n"
+            )
+
+            html_body = f"""<!DOCTYPE html>
+<html lang="tr">
+<head><meta charset="UTF-8"><title>SineMix İçerik Talebi</title></head>
+<body style="margin:0;padding:26px;background-color:#090b12;font-family:'Segoe UI',Arial,sans-serif;color:#f8fafc;">
+    <div style="max-width:540px;margin:0 auto;padding:30px;border-radius:20px;background:#121522;border:1px solid rgba(250,204,21,0.35);">
+        <div style="margin-bottom:18px;">
+            <span style="display:inline-block;padding:5px 12px;border-radius:999px;background:rgba(250,204,21,0.16);color:#facc15;font-weight:700;font-size:12px;">
+                🎬 SineMix Film / Dizi İstek Kutusu
+            </span>
+            <h2 style="margin:12px 0 4px;color:#ffffff;font-size:21px;">Yeni İçerik Talebi: {title}</h2>
+            <p style="margin:0;color:#94a3b8;font-size:13px;">Toplam Talep Sayısı: <strong style="color:#facc15;">{req_count}</strong></p>
+        </div>
+        <table style="width:100%;border-collapse:collapse;background:#090b12;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);">
+            <tr>
+                <td style="padding:11px 14px;color:#94a3b8;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.06);">👤 Kullanıcı Adı</td>
+                <td style="padding:11px 14px;color:#facc15;font-weight:700;font-size:14px;border-bottom:1px solid rgba(255,255,255,0.06);">@{requester_username}</td>
+            </tr>
+            <tr>
+                <td style="padding:11px 14px;color:#94a3b8;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.06);">✉️ Kullanıcı E-Posta</td>
+                <td style="padding:11px 14px;color:#ffffff;font-weight:600;font-size:14px;border-bottom:1px solid rgba(255,255,255,0.06);">{requester_email}</td>
+            </tr>
+            <tr>
+                <td style="padding:11px 14px;color:#94a3b8;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.06);">🎬 Yapım Adı & Türü</td>
+                <td style="padding:11px 14px;color:#ffffff;font-weight:700;font-size:14px;border-bottom:1px solid rgba(255,255,255,0.06);">{title} ({media_type})</td>
+            </tr>
+            <tr>
+                <td style="padding:11px 14px;color:#94a3b8;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.06);">📅 Çıkış Yılı</td>
+                <td style="padding:11px 14px;color:#cbd5e1;font-size:13.5px;border-bottom:1px solid rgba(255,255,255,0.06);">{year}</td>
+            </tr>
+            <tr>
+                <td style="padding:11px 14px;color:#94a3b8;font-size:13px;">📝 Kısa Not</td>
+                <td style="padding:11px 14px;color:#cbd5e1;font-size:13.5px;">{note}</td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>"""
+
+            msg.attach(MIMEText(text_body, "plain", "utf-8"))
+            msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                server.login(smtp_user, smtp_pass)
+                server.sendmail(smtp_user, [admin_email], msg.as_string())
+
+            return True, "smtp"
+        except Exception as exc:
+            print(f"\n[SineMix Talep Mail Uyarısı] Admin e-postası gönderilemedi ({exc}). Konsol logu yazılıyor.")
+
+    print(
+        "\n============================================================\n"
+        f" 📨 [SineMix Yeni Film/Dizi Talebi -> ADMIN_EMAIL: {admin_email or 'Tanımsız'}]\n"
+        f" 👤 Kullanıcı Adı : @{requester_username}\n"
+        f" ✉️  Kullanıcı Mail: {requester_email}\n"
+        f" 🎬 Yapım         : {title} ({media_type} • {year})\n"
+        f" 📝 Not           : {note}\n"
+        "============================================================\n",
+        flush=True,
+    )
+    return True, "console"

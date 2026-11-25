@@ -1,7 +1,7 @@
 """Catalog feature endpoint'leri (Keşfet & Ekle, Sinematik İçerik Detay Sayfası ve TMDB Arama API'si)."""
 
 from flask import Blueprint, abort, jsonify, render_template, request
-from app.features.auth.services import get_current_user
+from app.features.auth.services import get_current_user, send_content_request_admin_email
 from app.features.catalog.repository import ContentRequestRepository
 from app.features.catalog.services import (
     fetch_comprehensive_item_detail,
@@ -95,37 +95,48 @@ def api_item_detail(media_type: str, tmdb_id: int):
 @catalog_bp.route("/api/requests", methods=["POST"])
 def api_submit_content_request():
     """
-    Kullanıcıların 434 yapımlık katalogda bulamadıkları Film / Dizi / Animasyon
-    içeriklerini talep edebileceği API uç noktası (`data/requests.json`).
+    Kullanıcıların katalogda bulamadıkları Film / Dizi / Animasyon içeriklerini
+    Kullanıcı Adı ve E-Posta bilgisiyle talep edebileceği API uç noktası (`data/requests.json`).
+    Talebi kaydeder ve `.env` içerisindeki `ADMIN_EMAIL` adresine e-posta olarak iletir.
     """
     payload = request.get_json(silent=True) or request.form.to_dict() or {}
     title = (payload.get("title") or "").strip()
     if not title or len(title) < 2:
         return jsonify({"error": "Lütfen geçerli bir yapım adı girin."}), 400
 
+    user = get_current_user()
+    raw_username = (payload.get("requester_username") or (user["username"] if user else "") or "").strip().lstrip("@")
+    raw_email = (payload.get("requester_email") or (user["email"] if user else "") or "").strip().lower()
+
+    if not raw_username or len(raw_username) < 2:
+        return jsonify({"error": "Lütfen kullanıcı adınızı girin."}), 400
+    if not raw_email or "@" not in raw_email or "." not in raw_email.split("@")[-1]:
+        return jsonify({"error": "Lütfen geçerli bir e-posta adresi girin."}), 400
+
     media_type = (payload.get("media_type") or "Film").strip()
     year = (str(payload.get("year") or "")).strip()
     note = (payload.get("note") or "").strip()
-
-    user = get_current_user()
-    requested_by = user["username"] if user else "misafir"
 
     record, is_duplicate = ContentRequestRepository.create_or_increment_request(
         title=title,
         media_type=media_type,
         year=year,
         note=note,
-        requested_by=requested_by,
+        requested_by=raw_username,
+        requester_email=raw_email,
     )
 
+    _, delivery_mode = send_content_request_admin_email(record)
+
     if is_duplicate:
-        msg = f"'{record['title']}' için talebiniz eklendi (Toplam {record['request_count']} kez talep edildi). En kısa sürede kataloğa eklenecek!"
+        msg = f"'{record['title']}' için talebiniz yöneticiye iletildi (Toplam {record['request_count']} kez talep edildi)."
     else:
-        msg = "Talebin alındı, en kısa sürede kataloğa eklenecek!"
+        msg = "Talebiniz kullanıcı adı ve e-posta bilginizle birlikte yöneticiye iletildi!"
 
     return jsonify({
         "status": "ok",
         "is_duplicate": is_duplicate,
+        "delivery_mode": delivery_mode,
         "message": msg,
         "request": record,
     })

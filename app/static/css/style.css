@@ -4624,3 +4624,28 @@ body.page-home {
 .profile-verified-email-badge strong {
     color: #ffffff;
 }
+
+
+/* Arama Kutusu İçinde Aranan Yapım Çıkmadığında Beliren "Film / Dizi Talep Et" Butonu */
+.search-no-result-request-btn {
+    flex-shrink: 0;
+    margin-left: 6px;
+    padding: 7px 14px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(250, 204, 21, 0.22) 0%, rgba(234, 179, 8, 0.14) 100%);
+    border: 1px solid rgba(250, 204, 21, 0.55);
+    color: #facc15;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+    animation: sayfaGelis 0.22s ease;
+}
+
+.search-no-result-request-btn:hover {
+    background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
+    color: #090b12;
+}
+
+.search-no-result-request-btn[hidden] {
+    display: none !important;
+}

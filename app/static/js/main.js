@@ -755,8 +755,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
         renderNumberedPagination(totalMatched);
 
-        if (tabEmptyState && cards.length > 0) {
-            tabEmptyState.hidden = totalMatched > 0;
+        if (tabEmptyState) {
+            const isDiscoverGrid = activeGrid.id === "discoverGrid";
+            if (isDiscoverGrid) {
+                tabEmptyState.hidden = totalMatched > 0;
+            } else if (cards.length > 0) {
+                tabEmptyState.hidden = totalMatched > 0;
+            }
+        }
+
+        const searchBarRequestBtn = document.getElementById("searchBarRequestBtn");
+        if (searchBarRequestBtn) {
+            const discoverInputEl = document.getElementById("discoverSearchInput");
+            const hasSearchQuery = Boolean(discoverInputEl && discoverInputEl.value.trim().length > 0);
+            searchBarRequestBtn.hidden = !(totalMatched === 0 && (hasSearchQuery || cards.length === 0));
         }
 
         if (scrollTop) {
@@ -982,6 +994,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const requestModal = document.getElementById("contentRequestModal");
     const closeRequestModalBtn = document.getElementById("closeRequestModalBtn");
     const contentRequestForm = document.getElementById("contentRequestForm");
+    const reqUsernameInput = document.getElementById("reqUsernameInput");
+    const reqEmailInput = document.getElementById("reqEmailInput");
     const reqTitleInput = document.getElementById("reqTitleInput");
     const reqTypeSelect = document.getElementById("reqTypeSelect");
     const reqYearInput = document.getElementById("reqYearInput");
@@ -992,8 +1006,14 @@ document.addEventListener("DOMContentLoaded", () => {
     function openRequestModal() {
         if (!requestModal) return;
         if (requestFeedbackAlert) requestFeedbackAlert.hidden = true;
+        if (reqUsernameInput && !reqUsernameInput.value && reqUsernameInput.dataset.defaultVal) {
+            reqUsernameInput.value = reqUsernameInput.dataset.defaultVal;
+        }
+        if (reqEmailInput && !reqEmailInput.value && reqEmailInput.dataset.defaultVal) {
+            reqEmailInput.value = reqEmailInput.dataset.defaultVal;
+        }
         // Eğer arama kutusunda bir metin varsa otomatik olarak talep başlığına doldur
-        if (reqTitleInput && !reqTitleInput.value && discoverSearchInput && discoverSearchInput.value.trim()) {
+        if (reqTitleInput && discoverSearchInput && discoverSearchInput.value.trim()) {
             reqTitleInput.value = discoverSearchInput.value.trim();
         }
         requestModal.hidden = false;
@@ -1022,7 +1042,9 @@ document.addEventListener("DOMContentLoaded", () => {
         contentRequestForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const titleVal = (reqTitleInput?.value || "").trim();
-            if (!titleVal) return;
+            const usernameVal = (reqUsernameInput?.value || "").trim();
+            const emailVal = (reqEmailInput?.value || "").trim();
+            if (!titleVal || !usernameVal || !emailVal) return;
 
             if (submitRequestBtn) {
                 submitRequestBtn.disabled = true;
@@ -1038,6 +1060,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         media_type: reqTypeSelect?.value || "Film",
                         year: reqYearInput?.value || "",
                         note: reqNoteInput?.value || "",
+                        requester_username: usernameVal,
+                        requester_email: emailVal,
                     }),
                 });
 
@@ -1049,9 +1073,18 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                     showToast(`🎬 ${data.message}`);
                     contentRequestForm.reset();
+                    if (reqUsernameInput && reqUsernameInput.dataset.defaultVal) {
+                        reqUsernameInput.value = reqUsernameInput.dataset.defaultVal;
+                    }
+                    if (reqEmailInput && reqEmailInput.dataset.defaultVal) {
+                        reqEmailInput.value = reqEmailInput.dataset.defaultVal;
+                    }
                     setTimeout(() => {
                         closeRequestModal();
                     }, 1500);
+                } else if (data.error && requestFeedbackAlert) {
+                    requestFeedbackAlert.textContent = `⚠️ ${data.error}`;
+                    requestFeedbackAlert.hidden = false;
                 }
             } catch (err) {
                 console.error("Talep gönderme hatası:", err);

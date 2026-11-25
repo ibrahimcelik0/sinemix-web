@@ -4,7 +4,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-def _load_dotenv_file(dotenv_path: Path) -> None:
+def _load_dotenv_file(dotenv_path: Path, override: bool = False) -> None:
     """Harici paket gerektirmeden .env dosyasındaki değişkenleri os.environ'a yükler."""
     if not dotenv_path.exists():
         return
@@ -16,13 +16,18 @@ def _load_dotenv_file(dotenv_path: Path) -> None:
             key, _, value = line.partition("=")
             key = key.strip()
             value = value.strip().strip('"').strip("'")
-            if key and key not in os.environ:
+            if key and (override or key not in os.environ or not os.environ.get(key)):
                 os.environ[key] = value
     except OSError:
         pass
 
 
-_load_dotenv_file(BASE_DIR / ".env")
+def refresh_dotenv_variables() -> None:
+    """Çalışma anında .env dosyasında yapılan güncellemeleri os.environ'a yansıtır."""
+    _load_dotenv_file(BASE_DIR / ".env", override=True)
+
+
+_load_dotenv_file(BASE_DIR / ".env", override=True)
 
 
 class Config:

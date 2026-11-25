@@ -12,7 +12,7 @@
     <div class="platform-container">
         <!-- Tek Parça Belirgin Yatay Arama & Filtre Çubuğu (Unified Search & Filter Bar) -->
         <div class="unified-search-filter-bar">
-            <!-- Sol: Büyüteç İkonlu Geniş Arama Kutusu -->
+            <!-- Sol: Büyüteç İkonlu Geniş Arama Kutusu + Aranan Film Çıkmadığında Beliren Talep Butonu -->
             <div class="unified-search-left">
                 <svg class="unified-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="11" cy="11" r="8"></circle>
@@ -24,9 +24,16 @@
                        placeholder="Film, dizi veya yönetmen ara..."
                        autocomplete="off">
                 <button type="button" id="searchClearBtn" class="unified-search-clear" aria-label="Aramayı temizle" hidden>✕</button>
+                <button type="button"
+                        id="searchBarRequestBtn"
+                        class="btn-request-content search-no-result-request-btn open-request-modal-btn"
+                        title="Aradığın yapımı kataloğa eklememiz için talep et"
+                        hidden>
+                    🎬 Film / Dizi Talep Et
+                </button>
             </div>
 
-            <!-- Sağ: Aynı Çubuğa Entegre Tümü | Filmler | Diziler + Tür Dropdown + Görünüm Seçici -->
+            <!-- Sağ: Aynı Çubuğa Entegre Tümü | Filmler | Diziler + Tür Dropdown + Detaylı Filtre + Görünüm Seçici -->
             <div class="unified-filter-right">
                 <div class="segmented-control" id="mediaSegmentedControl" role="tablist" aria-label="İçerik Tipi Filtresi">
                     <button type="button" class="segment-btn active" data-media-filter="ALL" role="tab" aria-selected="true">
@@ -56,6 +63,24 @@
                     <option value="year-desc">Yapım Yılı</option>
                     <option value="title-asc">İsim (A → Z)</option>
                 </select>
+
+                <a href="{{ url_for('main.filtre') }}"
+                   id="filterPageBtn"
+                   class="filter-toggle-btn"
+                   title="Detaylı Filtre Sayfasını Aç">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="4" y1="21" x2="4" y2="14"></line>
+                        <line x1="4" y1="10" x2="4" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12" y2="3"></line>
+                        <line x1="20" y1="21" x2="20" y2="16"></line>
+                        <line x1="20" y1="12" x2="20" y2="3"></line>
+                        <line x1="1" y1="14" x2="7" y2="14"></line>
+                        <line x1="9" y1="8" x2="15" y2="8"></line>
+                        <line x1="17" y1="16" x2="23" y2="16"></line>
+                    </svg>
+                    <span>Detaylı Filtre</span>
+                </a>
 
                 <!-- Görünüm Seçici: Klasik Posterli Kart (Grid) vs. Seçilebilir Çubuk (Bar) -->
                 <div class="view-mode-switcher" id="viewModeSwitcher" role="group" aria-label="Görünüm Düzeni Seçici">
@@ -163,20 +188,12 @@
         <!-- Sayfa Başına 20 Film Numaralı Sayfalama (Page Switcher: 1, 2, 3...) -->
         <nav id="numberedPaginationBar" class="numbered-pagination-bar" aria-label="Sayfalama"></nav>
 
-        <!-- Arama Sonuçlarının Altında "Film / Dizi Talep Et" Çağrı Kutusu -->
-        <div class="request-cta-footer">
-            <span>Aradığın film veya diziyi 434 yapımlık katalogda bulamadın mı?</span>
-            <button type="button" class="btn-request-content open-request-modal-btn">
-                🎬 Film / Dizi Talep Et
-            </button>
-        </div>
-
         <div id="discoverEmptyState" class="empty-filter-state" hidden>
             <div class="empty-icon">🎬</div>
             <h3>Aradığınız Yapım Katalogda Bulunamadı</h3>
-            <p>Bu yapımı hemen talep ederek kataloğa eklenmesini sağlayabilirsiniz.</p>
+            <p>Arama kutusundaki veya aşağıdaki butona tıklayarak bu yapımı hemen talep edebilirsiniz.</p>
             <button type="button" class="btn-gold-action open-request-modal-btn">
-                🎬 Bu Yapımı Talep Et
+                🎬 Film / Dizi Talep Et
             </button>
         </div>
     </div>
