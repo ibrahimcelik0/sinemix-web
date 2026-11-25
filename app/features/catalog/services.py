@@ -504,12 +504,42 @@ def fetch_comprehensive_item_detail(tmdb_id: int, media_type: str = "movie") -> 
         return None
 
     # 3. Kullanıcı İzleme Listesi Durumu (`data/watchlist.json`) ve Öneri Eşleşme Analizi
+    from app.features.watchlist.repository import format_turkish_date_range, get_default_today_watched_at
     watched_entry = WatchlistRepository.get_by_id(
         tmdb_id=item_detail["tmdb_id"],
         media_type=item_detail["media_type"],
     )
+    default_today = get_default_today_watched_at()
     item_detail["in_watchlist"] = watched_entry is not None
     item_detail["user_rating"] = int(watched_entry["user_rating"]) if watched_entry else None
+    item_detail["watch_start_date"] = (
+        watched_entry.get("watch_start_date") or watched_entry.get("watched_at") or default_today
+        if watched_entry
+        else default_today
+    )
+    item_detail["watch_end_date"] = (
+        watched_entry.get("watch_end_date") or watched_entry.get("watched_at") or default_today
+        if watched_entry
+        else default_today
+    )
+    item_detail["watched_at"] = item_detail["watch_end_date"]
+    item_detail["watched_date_label"] = (
+        watched_entry.get("watched_date_label")
+        if watched_entry and watched_entry.get("watched_date_label")
+        else format_turkish_date_range(item_detail["watch_start_date"], item_detail["watch_end_date"])
+    )
+    item_detail["season_watch_dates"] = (
+        watched_entry.get("season_watch_dates") or []
+        if watched_entry
+        else []
+    )
+    item_detail["season_watch_map"] = {
+        int(s["season_number"]): s
+        for s in item_detail["season_watch_dates"]
+        if isinstance(s, dict) and s.get("season_number")
+    }
+    item_detail["watched_year"] = int(watched_entry.get("watched_year", 2026)) if watched_entry else 2026
+    item_detail["watched_month"] = int(watched_entry.get("watched_month", 1)) if watched_entry else 1
 
     from app.features.recommendations.services import evaluate_single_item_match
     match_analysis = evaluate_single_item_match(item_detail)
@@ -535,6 +565,10 @@ def search_multi_catalog(
     watchlist_items = WatchlistRepository.get_all()
     watched_lookup = {
         (int(w["tmdb_id"]), w.get("media_type", "movie")): int(w.get("user_rating", 0))
+        for w in watchlist_items
+    }
+    watched_date_lookup = {
+        (int(w["tmdb_id"]), w.get("media_type", "movie")): w.get("watched_at", "")
         for w in watchlist_items
     }
 
@@ -566,6 +600,7 @@ def search_multi_catalog(
         enriched = dict(item)
         enriched["user_rating"] = watched_lookup.get((t_id, m_type))
         enriched["in_watchlist"] = (t_id, m_type) in watched_lookup
+        enriched["watched_at"] = watched_date_lookup.get((t_id, m_type), "")
         results.append(enriched)
 
     if sort_by == "title-asc":

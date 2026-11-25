@@ -99,6 +99,11 @@
                              data-media-type="{{ item.media_type }}"
                              data-title="{{ item.title }}"
                              data-poster="{{ item.poster_path }}"
+                             data-watched-at="{{ item.watched_at }}"
+                             data-watch-start="{{ item.watch_start_date }}"
+                             data-watch-end="{{ item.watch_end_date }}"
+                             data-watched-label="{{ item.watched_date_label }}"
+                             data-season-dates='{{ (item.season_watch_dates or []) | tojson }}'
                              data-genres='{{ item.genres | tojson }}'
                              data-keywords='{{ item.keywords | tojson }}'>
 
@@ -158,6 +163,58 @@
                                             {{ r }}
                                         </button>
                                     {% endfor %}
+                                </div>
+                                <div class="card-watched-date-row">
+                                    {% if item.media_type == 'movie' %}
+                                        <div class="card-date-summary-line">
+                                            <span class="watched-date-label">🎬 İzleme Aralığı:</span>
+                                            <span class="watched-range-pretty-pill card-pretty-date-pill">📅 {{ item.watched_date_label }}</span>
+                                        </div>
+                                        <div class="card-date-inputs-line">
+                                            <input type="date"
+                                                   class="watched-date-input card-watch-start-input"
+                                                   min="2020-01-01"
+                                                   max="2026-12-31"
+                                                   value="{{ item.watch_start_date }}"
+                                                   title="Başlama Tarihi">
+                                            <span class="date-range-arrow">→</span>
+                                            <input type="date"
+                                                   class="watched-date-input card-watch-end-input"
+                                                   min="2020-01-01"
+                                                   max="2026-12-31"
+                                                   value="{{ item.watch_end_date }}"
+                                                   title="Bitiş Tarihi">
+                                        </div>
+                                    {% else %}
+                                        <div class="card-date-summary-line">
+                                            <span class="watched-date-label">📺 Sezon İzleme Tarihleri:</span>
+                                        </div>
+                                        <div class="card-season-chips-wrap">
+                                            {% for s_entry in item.season_watch_dates %}
+                                                <span class="season-date-chip">📺 {{ s_entry.label }}</span>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="card-date-inputs-line">
+                                            <select class="watched-season-select card-season-select" title="Sezon Seç">
+                                                {% for s_num in range(1, 11) %}
+                                                    <option value="{{ s_num }}">{{ s_num }}. Sezon</option>
+                                                {% endfor %}
+                                            </select>
+                                            <input type="date"
+                                                   class="watched-date-input card-watch-start-input"
+                                                   min="2020-01-01"
+                                                   max="2026-12-31"
+                                                   value="{{ item.season_watch_dates[0].start_date if item.season_watch_dates else item.watch_start_date }}"
+                                                   title="Sezona Başlama Tarihi">
+                                            <span class="date-range-arrow">→</span>
+                                            <input type="date"
+                                                   class="watched-date-input card-watch-end-input"
+                                                   min="2020-01-01"
+                                                   max="2026-12-31"
+                                                   value="{{ item.season_watch_dates[0].end_date if item.season_watch_dates else item.watch_end_date }}"
+                                                   title="Sezonu Bitirme Tarihi">
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>

@@ -74,6 +74,11 @@ def add_or_rate_watchlist_item(payload: Dict[str, Any]) -> Dict[str, Any]:
         "user_rating": user_rating,
         "genres": genres,
         "keywords": keywords,
+        "watched_at": payload.get("watched_at"),
+        "watch_start_date": payload.get("watch_start_date"),
+        "watch_end_date": payload.get("watch_end_date"),
+        "season_number": payload.get("season_number"),
+        "season_watch_dates": payload.get("season_watch_dates"),
     })
 
 

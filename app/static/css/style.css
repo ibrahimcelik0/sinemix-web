@@ -4649,3 +4649,495 @@ body.page-home {
 .search-no-result-request-btn[hidden] {
     display: none !important;
 }
+
+
+/* ==========================================================================
+   İzlenme Tarihi Seçici (2020–2026) & Profil Yıllık İzleme İstatistikleri Paneli
+   ========================================================================== */
+.watched-date-picker-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 12px;
+    background: rgba(15, 18, 29, 0.85);
+    border: 1px solid rgba(250, 204, 21, 0.35);
+}
+
+.watched-date-label {
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: #facc15;
+    white-space: nowrap;
+}
+
+.watched-date-input {
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(9, 11, 18, 0.9);
+    color: #f8fafc;
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    outline: none;
+    color-scheme: dark;
+    cursor: pointer;
+}
+
+.watched-date-input:focus {
+    border-color: #facc15;
+    box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.18);
+}
+
+.card-watched-date-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 7px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.card-watched-date-row[hidden] {
+    display: none !important;
+}
+
+.card-watched-date-row .watched-date-input {
+    flex: 1;
+    max-width: 145px;
+    font-size: 0.74rem;
+    padding: 3px 7px;
+}
+
+/* Profil Yıllık İzleme İstatistikleri (2026 – 2020 + Tüm Zamanlar) */
+.profile-yearly-stats-section {
+    margin-top: 28px;
+    padding: 28px 30px;
+    border-radius: 24px;
+    background: linear-gradient(155deg, rgba(22, 24, 38, 0.88) 0%, rgba(12, 14, 22, 0.96) 100%);
+    border: 1px solid rgba(250, 204, 21, 0.24);
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.5);
+}
+
+.yearly-stats-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 6px;
+    border-radius: 16px;
+    background: rgba(9, 11, 18, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.yearly-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 11px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #94a3b8;
+    font-family: inherit;
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.yearly-tab-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.yearly-tab-btn.active {
+    background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
+    color: #090b12;
+    box-shadow: 0 4px 14px rgba(250, 204, 21, 0.32);
+}
+
+.yearly-tab-count {
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    background: rgba(0, 0, 0, 0.25);
+    color: inherit;
+}
+
+.yearly-stat-panel[hidden] {
+    display: none !important;
+}
+
+.yearly-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.yearly-kpi-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 18px 20px;
+    border-radius: 18px;
+    background: rgba(15, 18, 29, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.yearly-kpi-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #94a3b8;
+}
+
+.yearly-kpi-value {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.yearly-kpi-sub {
+    font-size: 0.76rem;
+    color: rgba(255, 255, 255, 0.56);
+}
+
+.yearly-fav-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    text-decoration: none;
+    color: #ffffff;
+    font-size: 1.05rem;
+}
+
+.yearly-fav-link:hover strong {
+    color: #facc15;
+}
+
+.yearly-fav-score {
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: rgba(250, 204, 21, 0.18);
+    border: 1px solid rgba(250, 204, 21, 0.45);
+    color: #facc15;
+    font-size: 0.78rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.yearly-charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.35fr;
+    gap: 18px;
+}
+
+@media (max-width: 960px) {
+    .yearly-charts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.yearly-chart-card {
+    padding: 20px 22px;
+    border-radius: 18px;
+    background: rgba(15, 18, 29, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.yearly-chart-title {
+    margin: 0 0 16px;
+    font-size: 0.96rem;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.top-genres-bars-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.top-genre-bar-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.top-genre-bar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.84rem;
+}
+
+.top-genre-name {
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.top-genre-meta {
+    color: #cbd5e1;
+    font-size: 0.8rem;
+}
+
+.top-genre-meta strong {
+    color: #facc15;
+}
+
+.top-genre-progress-track {
+    width: 100%;
+    height: 9px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+}
+
+.top-genre-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #facc15 0%, #34d399 100%);
+}
+
+/* 12 Aylık (Ocak–Aralık) İzleme Aktivitesi Bar Grafiği */
+.monthly-activity-bars {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 8px;
+    align-items: end;
+    height: 138px;
+    padding-top: 16px;
+}
+
+.monthly-bar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    height: 100%;
+}
+
+.monthly-bar-count {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #94a3b8;
+    min-height: 15px;
+}
+
+.monthly-bar-count.has-items {
+    color: #facc15;
+}
+
+.monthly-bar-track {
+    flex: 1;
+    width: 100%;
+    max-width: 24px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+    padding: 2px;
+}
+
+.monthly-bar-fill {
+    width: 100%;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.14);
+    transition: height 0.35s ease;
+}
+
+.monthly-bar-fill.is-active {
+    background: linear-gradient(180deg, #facc15 0%, #eab308 100%);
+    box-shadow: 0 0 12px rgba(250, 204, 21, 0.35);
+}
+
+.monthly-bar-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.yearly-empty-state-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 36px 24px;
+    border-radius: 18px;
+    background: rgba(15, 18, 29, 0.72);
+    border: 1px dashed rgba(255, 255, 255, 0.14);
+    gap: 10px;
+}
+
+.yearly-empty-state-box h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    color: #ffffff;
+}
+
+.yearly-empty-state-box p {
+    margin: 0 0 8px;
+    max-width: 540px;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: #94a3b8;
+}
+
+
+/* ==========================================================================
+   Filmler İçin İzleme Tarih Aralığı (Örn: 25–26 Kasım 2026) &
+   Diziler İçin Sezon Sezon Başlama / Bitiş Tarihleri Stilleri
+   ========================================================================== */
+.movie-range-picker-wrap,
+.tv-season-range-picker-wrap {
+    flex-wrap: wrap;
+}
+
+.date-range-arrow {
+    color: #facc15;
+    font-weight: 800;
+    font-size: 0.85rem;
+}
+
+.watched-range-pretty-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(250, 204, 21, 0.16);
+    border: 1px solid rgba(250, 204, 21, 0.42);
+    color: #fde047;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.watched-season-select {
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(250, 204, 21, 0.4);
+    background: rgba(9, 11, 18, 0.92);
+    color: #facc15;
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    outline: none;
+    cursor: pointer;
+}
+
+.season-date-sub-lbl {
+    font-size: 0.73rem;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.season-dates-pills-row,
+.card-season-chips-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.season-dates-pills-row[hidden] {
+    display: none !important;
+}
+
+.season-date-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.14);
+    border: 1px solid rgba(16, 185, 129, 0.42);
+    color: #6ee7b7;
+    font-size: 0.74rem;
+    font-weight: 700;
+}
+
+.card-watched-date-row {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 6px !important;
+}
+
+.card-date-summary-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.card-date-inputs-line {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.card-date-inputs-line .watched-date-input {
+    flex: 1;
+    min-width: 105px;
+    max-width: none !important;
+    font-size: 0.72rem;
+    padding: 3px 6px;
+}
+
+.tv-season-date-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    border-radius: 14px;
+    background: rgba(15, 18, 29, 0.88);
+    border: 1px solid rgba(250, 204, 21, 0.28);
+}
+
+.tv-season-date-left {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.tv-season-date-title {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: #facc15;
+}
+
+.tv-season-date-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.btn-save-season-dates {
+    padding: 6px 12px;
+    border-radius: 9px;
+    border: 1px solid rgba(250, 204, 21, 0.5);
+    background: rgba(250, 204, 21, 0.16);
+    color: #facc15;
+    font-family: inherit;
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-save-season-dates:hover {
+    background: #facc15;
+    color: #090b12;
+}

@@ -38,6 +38,49 @@ document.addEventListener("DOMContentLoaded", () => {
         return d.innerHTML;
     }
 
+    function getDefaultTodayDate2026() {
+        const now = new Date();
+        let y = now.getFullYear();
+        if (y < 2020 || y > 2026) y = 2026;
+        const m = String(now.getMonth() + 1).padStart(2, "0");
+        const d = String(now.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+    }
+
+    const TR_MONTHS_CLIENT = [
+        "", "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+        "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
+    ];
+
+    function formatTurkishDateRangeClient(startRaw, endRaw) {
+        const fallback = getDefaultTodayDate2026();
+        let s = (startRaw || fallback).trim();
+        let e = (endRaw || s).trim();
+        if (e < s) {
+            const tmp = s;
+            s = e;
+            e = tmp;
+        }
+        const sp = s.split("-");
+        const ep = e.split("-");
+        if (sp.length < 3 || ep.length < 3) return s;
+
+        const sy = parseInt(sp[0], 10);
+        const sm = parseInt(sp[1], 10);
+        const sd = parseInt(sp[2], 10);
+        const ey = parseInt(ep[0], 10);
+        const em = parseInt(ep[1], 10);
+        const ed = parseInt(ep[2], 10);
+
+        const sMonth = TR_MONTHS_CLIENT[sm] || "";
+        const eMonth = TR_MONTHS_CLIENT[em] || "";
+
+        if (s === e) return `${sd} ${sMonth} ${sy}`;
+        if (sy === ey && sm === em) return `${sd}–${ed} ${sMonth} ${sy}`;
+        if (sy === ey) return `${sd} ${sMonth} – ${ed} ${eMonth} ${sy}`;
+        return `${sd} ${sMonth} ${sy} – ${ed} ${eMonth} ${ey}`;
+    }
+
     // =========================================================================
     // 1. Transparan (Glassmorphism) "✨ Neden Önerildi?" Modal Yönetimi
     // =========================================================================
@@ -288,6 +331,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const badgeTone = item.match_score >= 85 ? "high-match" : item.match_score >= 70 ? "mid-match" : "";
+        const badgeText = item.match_badge_text || `%${item.match_score} Uyum`;
 
         article.innerHTML = `
             <div class="media-poster-wrap">
@@ -295,7 +339,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     ${item.media_type === "tv" ? "DİZİ" : "FİLM"}
                 </span>
                 <div class="match-score-badge ${badgeTone}">
-                    %${item.match_score} Eşleşme
+                    ${escapeHtml(badgeText)}
                 </div>
                 <div class="watched-ribbon" hidden>
                     ✓ İzlendi (<strong class="user-rating-val"></strong>/10)
@@ -317,7 +361,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <button type="button" class="why-modal-trigger-btn" aria-haspopup="dialog">
                     <span class="sparkle-icon">✨</span>
                     <span>Neden Önerildi?</span>
-                    <span class="why-score-pill">%${item.match_score}</span>
+                    <span class="why-score-pill">%${item.match_score} Uyum</span>
                 </button>
                 <div class="quick-rate-box">
                     <div class="quick-rate-header">
@@ -329,6 +373,64 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
         `;
         return article;
+    }
+
+    function applyRecommendationsPagePayload(data) {
+        const recs = data.recommendations || [];
+        const profile = data.profile || {};
+        const watchlistEmpty = Boolean(data.watchlist_empty);
+
+        const recsGrid = document.getElementById("recommendationsGrid");
+        const recsEmptyBox = document.getElementById("recsEmptyStateBox");
+        const recsProfileCard = document.getElementById("recsProfileSummaryCard");
+        const favGenresEl = document.getElementById("recsFavoriteGenresChips");
+        const formatChipEl = document.getElementById("recsFormatAffinityChip");
+        const statusPill = document.getElementById("recsEngineStatusPill");
+
+        if (!recsGrid) return;
+
+        recsGrid.innerHTML = "";
+        recs.forEach((item) => {
+            recsGrid.appendChild(buildRecommendationCardElement(item));
+        });
+        bindMediaCardEvents(recsGrid);
+
+        if (recsEmptyBox) recsEmptyBox.hidden = recs.length > 0;
+        if (recsProfileCard) recsProfileCard.hidden = watchlistEmpty || recs.length === 0;
+
+        if (favGenresEl) {
+            const posHtml = (profile.favorite_genres || [])
+                .map((g) => `<span class="taste-chip positive">${escapeHtml(g.name)} <small>+${g.weight}</small></span>`)
+                .join("");
+            const negHtml = (profile.disliked_genres || [])
+                .map((g) => `<span class="taste-chip negative">${escapeHtml(g.name)} <small>${g.weight}</small></span>`)
+                .join("");
+            favGenresEl.innerHTML = posHtml + negHtml;
+        }
+
+        if (formatChipEl && profile.preferred_format_label) {
+            formatChipEl.innerHTML = `<span class="taste-chip keyword">${escapeHtml(profile.preferred_format_label)}</span>`;
+        }
+
+        if (statusPill && !watchlistEmpty && profile.preferred_format_label) {
+            statusPill.innerHTML = `<span class="status-dot live"></span> Dinamik Ağırlıklı Algoritma • <strong>${escapeHtml(profile.preferred_format_label)}</strong>`;
+        }
+
+        currentPage = 1;
+        updateSegmentedCounts();
+        applySegmentedTabFilter();
+    }
+
+    async function refreshAuthenticatedRecommendations() {
+        if (!document.getElementById("recommendationsGrid")) return;
+        try {
+            const res = await fetch("/api/recommendations");
+            if (!res.ok) return;
+            const data = await res.json();
+            applyRecommendationsPagePayload(data);
+        } catch (err) {
+            console.error("Öneri listesi yenileme hatası:", err);
+        }
     }
 
     async function refreshGuestRecommendationsPreview(scrollToSection = false) {
@@ -347,7 +449,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const liveChips = document.getElementById("liveProfileChips");
 
             if (liveSection && liveRecsGrid) {
-                if (recs.length === 0) {
+                if (guestWatchlist.length === 0 || recs.length === 0) {
                     liveSection.hidden = true;
                     liveRecsGrid.innerHTML = "";
                 } else {
@@ -371,45 +473,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             }
 
-            const recsGrid = document.getElementById("recommendationsGrid");
-            const recsEmptyBox = document.getElementById("recsEmptyStateBox");
-            const recsProfileCard = document.getElementById("recsProfileSummaryCard");
-            const recsSegmentedBar = document.getElementById("recsSegmentedBar");
-            const favGenresEl = document.getElementById("recsFavoriteGenresChips");
-            const favKwsEl = document.getElementById("recsFavoriteKeywordsChips");
-
-            if (recsGrid) {
-                recsGrid.innerHTML = "";
-                recs.forEach((item) => {
-                    recsGrid.appendChild(buildRecommendationCardElement(item));
-                });
-                bindMediaCardEvents(recsGrid);
-
-                if (recsEmptyBox) recsEmptyBox.hidden = recs.length > 0;
-                if (recsSegmentedBar) recsSegmentedBar.hidden = recs.length === 0;
-                if (recsProfileCard) recsProfileCard.hidden = recs.length === 0;
-
-                if (favGenresEl) {
-                    const posHtml = (profile.favorite_genres || [])
-                        .map((g) => `<span class="taste-chip positive">${escapeHtml(g.name)} <small>+${g.weight}</small></span>`)
-                        .join("");
-                    const negHtml = (profile.disliked_genres || [])
-                        .map((g) => `<span class="taste-chip negative">${escapeHtml(g.name)} <small>${g.weight}</small></span>`)
-                        .join("");
-                    favGenresEl.innerHTML = posHtml + negHtml;
-                }
-
-                if (favKwsEl) {
-                    favKwsEl.innerHTML = (profile.favorite_keywords || [])
-                        .slice(0, 8)
-                        .map((kw) => `<span class="taste-chip keyword">#${escapeHtml(kw.name)} <small>+${kw.weight}</small></span>`)
-                        .join("");
-                }
-
-                currentPage = 1;
-                updateSegmentedCounts();
-                applySegmentedTabFilter();
-            }
+            applyRecommendationsPagePayload(data);
         } catch (err) {
             console.error("Misafir öneri hesaplama hatası:", err);
         }
@@ -449,15 +513,108 @@ document.addEventListener("DOMContentLoaded", () => {
             const confirmWatchBtn = card.querySelector(".card-watch-confirm-btn");
             const rateLabel = card.querySelector(".rate-label");
             const ratingBarEl = card.querySelector(".rating-number-bar");
+            const quickRateBox = card.querySelector(".quick-rate-box");
             const initialSelectedBtn = card.querySelector(".rate-num-btn.selected");
             if (initialSelectedBtn && card.classList.contains("is-in-watchlist")) {
                 card.dataset.confirmedRating = initialSelectedBtn.dataset.rating || "";
             }
 
+            // Filmler için Başlama–Bitiş Tarih Aralığı, Diziler için Sezon Bazlı Başlama–Bitiş Tarihleri
+            let watchedDateRow = card.querySelector(".card-watched-date-row");
+            if (!watchedDateRow && quickRateBox) {
+                watchedDateRow = document.createElement("div");
+                watchedDateRow.className = "card-watched-date-row";
+                watchedDateRow.hidden = !card.classList.contains("is-in-watchlist");
+                const initStart = card.dataset.watchStart || card.dataset.watchedAt || getDefaultTodayDate2026();
+                const initEnd = card.dataset.watchEnd || card.dataset.watchedAt || initStart;
+                const initLabel = card.dataset.watchedLabel || formatTurkishDateRangeClient(initStart, initEnd);
+
+                if (mediaType === "tv") {
+                    watchedDateRow.innerHTML = `
+                        <div class="card-date-summary-line">
+                            <span class="watched-date-label">📺 Sezon İzleme Tarihleri:</span>
+                        </div>
+                        <div class="card-season-chips-wrap"></div>
+                        <div class="card-date-inputs-line">
+                            <select class="watched-season-select card-season-select" title="Sezon Seç">
+                                <option value="1">1. Sezon</option>
+                                <option value="2">2. Sezon</option>
+                                <option value="3">3. Sezon</option>
+                                <option value="4">4. Sezon</option>
+                                <option value="5">5. Sezon</option>
+                                <option value="6">6. Sezon</option>
+                                <option value="7">7. Sezon</option>
+                                <option value="8">8. Sezon</option>
+                            </select>
+                            <input type="date"
+                                   class="watched-date-input card-watch-start-input"
+                                   min="2020-01-01"
+                                   max="2026-12-31"
+                                   value="${escapeHtml(initStart)}"
+                                   title="Sezona Başlama Tarihi">
+                            <span class="date-range-arrow">→</span>
+                            <input type="date"
+                                   class="watched-date-input card-watch-end-input"
+                                   min="2020-01-01"
+                                   max="2026-12-31"
+                                   value="${escapeHtml(initEnd)}"
+                                   title="Sezonu Bitirme Tarihi">
+                        </div>
+                    `;
+                } else {
+                    watchedDateRow.innerHTML = `
+                        <div class="card-date-summary-line">
+                            <span class="watched-date-label">🎬 İzleme Aralığı:</span>
+                            <span class="watched-range-pretty-pill card-pretty-date-pill">📅 ${escapeHtml(initLabel)}</span>
+                        </div>
+                        <div class="card-date-inputs-line">
+                            <input type="date"
+                                   class="watched-date-input card-watch-start-input"
+                                   min="2020-01-01"
+                                   max="2026-12-31"
+                                   value="${escapeHtml(initStart)}"
+                                   title="Başlama Tarihi">
+                            <span class="date-range-arrow">→</span>
+                            <input type="date"
+                                   class="watched-date-input card-watch-end-input"
+                                   min="2020-01-01"
+                                   max="2026-12-31"
+                                   value="${escapeHtml(initEnd)}"
+                                   title="Bitiş Tarihi">
+                        </div>
+                    `;
+                }
+                quickRateBox.appendChild(watchedDateRow);
+            }
+
+            const startInput = card.querySelector(".card-watch-start-input");
+            const endInput = card.querySelector(".card-watch-end-input");
+            const seasonSelect = card.querySelector(".card-season-select");
+            const prettyPill = card.querySelector(".card-pretty-date-pill");
+            const seasonChipsWrap = card.querySelector(".card-season-chips-wrap");
+
+            function updateCardLiveDatePreview() {
+                const sVal = (startInput?.value || getDefaultTodayDate2026()).trim();
+                const eVal = (endInput?.value || sVal).trim();
+                if (prettyPill) {
+                    prettyPill.textContent = `📅 ${formatTurkishDateRangeClient(sVal, eVal)}`;
+                }
+            }
+
             async function submitCardWatchedRating(rating) {
+                const chosenStart = (startInput?.value || card.dataset.watchStart || getDefaultTodayDate2026()).trim();
+                const chosenEnd = (endInput?.value || card.dataset.watchEnd || chosenStart).trim();
+                const chosenSeason = seasonSelect ? parseInt(seasonSelect.value || "1", 10) : 1;
+                const rangeLabel = formatTurkishDateRangeClient(chosenStart, chosenEnd);
+
                 card.classList.add("is-in-watchlist");
                 card.dataset.confirmedRating = String(rating);
+                card.dataset.watchStart = chosenStart;
+                card.dataset.watchEnd = chosenEnd;
+                card.dataset.watchedAt = chosenEnd;
                 delete card.dataset.pendingRating;
+                if (watchedDateRow) watchedDateRow.hidden = false;
+                updateCardLiveDatePreview();
 
                 card.querySelectorAll(".rate-num-btn").forEach((b) => {
                     b.classList.toggle("selected", parseInt(b.dataset.rating || "0", 10) === rating);
@@ -477,6 +634,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     confirmWatchBtn.classList.remove("is-pending-confirm");
                 }
 
+                const toastDateText = mediaType === "tv" ? `${chosenSeason}. Sezon: ${rangeLabel}` : rangeLabel;
+
                 if (!isAuthenticated) {
                     upsertGuestWatchlistItem({
                         tmdb_id: tmdbId,
@@ -484,10 +643,17 @@ document.addEventListener("DOMContentLoaded", () => {
                         title: title,
                         poster_path: posterPath,
                         user_rating: rating,
+                        watch_start_date: chosenStart,
+                        watch_end_date: chosenEnd,
+                        watched_at: chosenEnd,
+                        season_number: mediaType === "tv" ? chosenSeason : undefined,
                         genres: genres,
                         keywords: keywords,
                     });
-                    showToast(`✓ "${title}" (${rating}/10) İzlendi olarak işaretlendi!`);
+                    if (mediaType === "tv" && seasonChipsWrap) {
+                        seasonChipsWrap.innerHTML = `<span class="season-date-chip">📺 ${escapeHtml(toastDateText)}</span>`;
+                    }
+                    showToast(`✓ "${title}" (${rating}/10 • ${toastDateText}) İzlendi olarak işaretlendi!`);
                     await refreshGuestRecommendationsPreview(false);
                     return;
                 }
@@ -502,6 +668,10 @@ document.addEventListener("DOMContentLoaded", () => {
                             title: title,
                             poster_path: posterPath,
                             user_rating: rating,
+                            watch_start_date: chosenStart,
+                            watch_end_date: chosenEnd,
+                            watched_at: chosenEnd,
+                            season_number: mediaType === "tv" ? chosenSeason : undefined,
                             genres: genres,
                             keywords: keywords,
                         }),
@@ -510,17 +680,34 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (!res.ok) return;
                     const data = await res.json();
 
-                    if (data.stats) {
-                        updateCounters(data.stats.total);
+                    if (data.item) {
+                        if (prettyPill && data.item.watched_date_label) {
+                            prettyPill.textContent = `📅 ${data.item.watched_date_label}`;
+                        }
+                        if (seasonChipsWrap && Array.isArray(data.item.season_watch_dates)) {
+                            seasonChipsWrap.innerHTML = data.item.season_watch_dates
+                                .map((s) => `<span class="season-date-chip">📺 ${escapeHtml(s.label)}</span>`)
+                                .join("");
+                        }
                     }
 
-                    showToast(`✓ "${title}" (${rating}/10) İzlendi olarak kaydedildi!`);
+                    if (data.stats) {
+                        updateCounters(data.stats.total);
+                        const recsCountEl = document.getElementById("recsWatchlistCountText");
+                        if (recsCountEl) recsCountEl.textContent = String(data.stats.total);
+                    }
+
+                    showToast(`✓ "${title}" (${rating}/10 • ${toastDateText}) İzlendi olarak kaydedildi!`);
+
+                    if (document.getElementById("recommendationsGrid")) {
+                        await refreshAuthenticatedRecommendations();
+                    }
                 } catch (err) {
                     console.error("Puan kaydetme hatası:", err);
                 }
             }
 
-            // 1. Adım: Kullanıcı 1-10 arası puan seçer (henüz kaydetmez, İzledim butonunu hazırlar)
+            // 1. Adım: Kullanıcı 1-10 arası puan seçer (Tarih Aralığı / Sezon Tarihi seçicisini açar)
             card.querySelectorAll(".rate-num-btn").forEach((btn) => {
                 btn.addEventListener("click", () => {
                     const chosen = parseInt(btn.dataset.rating || "0", 10);
@@ -531,6 +718,11 @@ document.addEventListener("DOMContentLoaded", () => {
                         b.classList.toggle("selected", b === btn);
                     });
 
+                    if (watchedDateRow) {
+                        watchedDateRow.hidden = false;
+                        updateCardLiveDatePreview();
+                    }
+
                     if (rateLabel) {
                         rateLabel.innerHTML = `Seçilen Puan: <strong class="gold-text">${chosen}/10</strong>`;
                     }
@@ -538,6 +730,17 @@ document.addEventListener("DOMContentLoaded", () => {
                         confirmWatchBtn.textContent = `🎬 İzledim (${chosen}/10)`;
                         confirmWatchBtn.classList.add("is-pending-confirm");
                         confirmWatchBtn.classList.remove("is-watched-confirmed");
+                    }
+                });
+            });
+
+            [startInput, endInput, seasonSelect].forEach((inp) => {
+                if (!inp) return;
+                inp.addEventListener("change", async () => {
+                    updateCardLiveDatePreview();
+                    const activeRating = parseInt(card.dataset.pendingRating || card.dataset.confirmedRating || "0", 10);
+                    if (card.classList.contains("is-in-watchlist") && activeRating > 0 && inp !== seasonSelect) {
+                        await submitCardWatchedRating(activeRating);
                     }
                 });
             });
@@ -1123,6 +1326,29 @@ document.addEventListener("DOMContentLoaded", () => {
         const watchedRibbon = document.getElementById("detailWatchedRibbon");
         const userRatingVal = document.getElementById("detailUserRatingVal");
         const ratePromptLabel = document.getElementById("detailRatePromptLabel");
+        const detailStartInput = document.getElementById("detailWatchStartDateInput");
+        const detailEndInput = document.getElementById("detailWatchEndDateInput");
+        const detailRangeBadge = document.getElementById("detailWatchedRangeBadge");
+        const detailSeasonSelect = document.getElementById("detailSeasonNumberSelect");
+        const detailSeasonPillsRow = document.getElementById("detailSeasonDatesPillsRow");
+
+        if (detailStartInput && !detailStartInput.value) detailStartInput.value = getDefaultTodayDate2026();
+        if (detailEndInput && !detailEndInput.value) detailEndInput.value = detailStartInput?.value || getDefaultTodayDate2026();
+
+        function updateDetailRangePreview() {
+            if (!detailRangeBadge || !detailStartInput || !detailEndInput) return;
+            detailRangeBadge.textContent = `📅 ${formatTurkishDateRangeClient(detailStartInput.value, detailEndInput.value)}`;
+        }
+
+        if (detailSeasonSelect) {
+            detailSeasonSelect.addEventListener("change", () => {
+                const opt = detailSeasonSelect.selectedOptions[0];
+                if (opt) {
+                    if (detailStartInput && opt.dataset.start) detailStartInput.value = opt.dataset.start;
+                    if (detailEndInput && opt.dataset.end) detailEndInput.value = opt.dataset.end;
+                }
+            });
+        }
 
         let selectedRating = null;
         const preSelected = ratingBar?.querySelector(".detail-rate-btn.selected");
@@ -1153,8 +1379,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
 
-        async function saveDetailRating(ratingToSave) {
-            if (!ratingToSave) {
+        async function saveDetailRating(ratingToSave, customSeasonNum = null, customStart = "", customEnd = "") {
+            const effRating = ratingToSave || selectedRating || 8;
+            if (!ratingToSave && !customSeasonNum) {
                 if (ratingBar) {
                     ratingBar.classList.add("needs-rating-pulse");
                     setTimeout(() => ratingBar.classList.remove("needs-rating-pulse"), 900);
@@ -1163,28 +1390,48 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
+            selectedRating = effRating;
+            const chosenStart = (customStart || detailStartInput?.value || getDefaultTodayDate2026()).trim();
+            const chosenEnd = (customEnd || detailEndInput?.value || chosenStart).trim();
+            const chosenSeason = customSeasonNum || (detailSeasonSelect ? parseInt(detailSeasonSelect.value || "1", 10) : 1);
+            const rangeText = formatTurkishDateRangeClient(chosenStart, chosenEnd);
+            const displayDateLabel = mediaType === "tv" ? `${chosenSeason}. Sezon: ${rangeText}` : rangeText;
+
+            updateDetailRangePreview();
+
             if (!isAuthenticated) {
                 upsertGuestWatchlistItem({
                     tmdb_id: tmdbId,
                     media_type: mediaType,
                     title: title,
                     poster_path: posterPath,
-                    user_rating: ratingToSave,
+                    user_rating: effRating,
+                    watch_start_date: chosenStart,
+                    watch_end_date: chosenEnd,
+                    watched_at: chosenEnd,
+                    season_number: mediaType === "tv" ? chosenSeason : undefined,
                     genres: genres,
                     keywords: keywords,
                 });
+                detailRoot.dataset.inWatchlist = "true";
                 if (watchedRibbon) watchedRibbon.hidden = false;
-                if (userRatingVal) userRatingVal.textContent = String(ratingToSave);
+                if (userRatingVal) userRatingVal.textContent = String(effRating);
                 if (saveBtn) {
-                    saveBtn.textContent = `✓ İzlendi (${ratingToSave}/10)`;
+                    saveBtn.textContent = `✓ İzlendi (${effRating}/10)`;
                     saveBtn.classList.add("is-watched-confirmed");
                     saveBtn.classList.remove("is-pending-confirm");
                 }
                 if (removeBtn) removeBtn.hidden = false;
-                if (ratePromptLabel) {
-                    ratePromptLabel.innerHTML = `✓ İzlendi — Verdiğin Puan: <strong class="gold-text">${ratingToSave}/10</strong> (Değiştirmek için yeni puan seçip güncelle):`;
+                if (detailSeasonPillsRow && mediaType === "tv") {
+                    detailSeasonPillsRow.hidden = false;
+                    detailSeasonPillsRow.innerHTML = `<span class="season-date-chip">📺 ${escapeHtml(displayDateLabel)}</span>`;
                 }
-                showToast(`✓ "${title}" (${ratingToSave}/10) İzlendi olarak işaretlendi!`);
+                const seasonChipEl = document.querySelector(`[data-season-label-chip="${chosenSeason}"]`);
+                if (seasonChipEl) seasonChipEl.textContent = displayDateLabel;
+                if (ratePromptLabel) {
+                    ratePromptLabel.innerHTML = `✓ İzlendi (${escapeHtml(displayDateLabel)}) — Verdiğin Puan: <strong class="gold-text">${effRating}/10</strong>:`;
+                }
+                showToast(`✓ "${title}" (${effRating}/10 • ${displayDateLabel}) İzlendi olarak işaretlendi!`);
                 return;
             }
 
@@ -1197,7 +1444,11 @@ document.addEventListener("DOMContentLoaded", () => {
                         media_type: mediaType,
                         title: title,
                         poster_path: posterPath,
-                        user_rating: ratingToSave,
+                        user_rating: effRating,
+                        watch_start_date: chosenStart,
+                        watch_end_date: chosenEnd,
+                        watched_at: chosenEnd,
+                        season_number: mediaType === "tv" ? chosenSeason : undefined,
                         genres: genres,
                         keywords: keywords,
                     }),
@@ -1205,23 +1456,62 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!res.ok) return;
                 const data = await res.json();
 
+                detailRoot.dataset.inWatchlist = "true";
                 if (watchedRibbon) watchedRibbon.hidden = false;
-                if (userRatingVal) userRatingVal.textContent = String(ratingToSave);
+                if (userRatingVal) userRatingVal.textContent = String(effRating);
                 if (saveBtn) {
-                    saveBtn.textContent = `✓ İzlendi (${ratingToSave}/10)`;
+                    saveBtn.textContent = `✓ İzlendi (${effRating}/10)`;
                     saveBtn.classList.add("is-watched-confirmed");
                     saveBtn.classList.remove("is-pending-confirm");
                 }
                 if (removeBtn) removeBtn.hidden = false;
+
+                if (data.item) {
+                    if (detailRangeBadge && data.item.watched_date_label) {
+                        detailRangeBadge.textContent = `📅 ${data.item.watched_date_label}`;
+                    }
+                    if (detailSeasonPillsRow && Array.isArray(data.item.season_watch_dates)) {
+                        detailSeasonPillsRow.hidden = data.item.season_watch_dates.length === 0;
+                        detailSeasonPillsRow.innerHTML = data.item.season_watch_dates
+                            .map((s) => `<span class="season-date-chip">📺 ${escapeHtml(s.label)}</span>`)
+                            .join("");
+                        data.item.season_watch_dates.forEach((s) => {
+                            const chip = document.querySelector(`[data-season-label-chip="${s.season_number}"]`);
+                            if (chip) chip.textContent = s.label;
+                        });
+                    }
+                }
+
                 if (ratePromptLabel) {
-                    ratePromptLabel.innerHTML = `✓ İzlendi — Verdiğin Puan: <strong class="gold-text">${ratingToSave}/10</strong> (Değiştirmek için yeni puan seçip güncelle):`;
+                    ratePromptLabel.innerHTML = `✓ İzlendi (${escapeHtml(displayDateLabel)}) — Verdiğin Puan: <strong class="gold-text">${effRating}/10</strong>:`;
                 }
                 if (data.stats) updateCounters(data.stats.total);
-                showToast(`✓ "${title}" (${ratingToSave}/10) İzlendi olarak kaydedildi!`);
+                showToast(`✓ "${title}" (${effRating}/10 • ${displayDateLabel}) İzlendi olarak kaydedildi!`);
             } catch (err) {
                 console.error("Detay sayfası kayıt hatası:", err);
             }
         }
+
+        [detailStartInput, detailEndInput].forEach((inp) => {
+            if (!inp) return;
+            inp.addEventListener("change", () => {
+                updateDetailRangePreview();
+                if (detailRoot.dataset.inWatchlist === "true" && selectedRating) {
+                    saveDetailRating(selectedRating);
+                }
+            });
+        });
+
+        // Dizi detay sayfasındaki sezon panellerinde yer alan "💾 X. Sezon Tarihini Kaydet" butonları
+        document.querySelectorAll(".btn-save-season-dates").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const sNum = parseInt(btn.dataset.saveSeasonNum || "1", 10);
+                const bar = btn.closest("[data-season-date-bar]");
+                const sStart = bar?.querySelector(".season-panel-start-input")?.value || getDefaultTodayDate2026();
+                const sEnd = bar?.querySelector(".season-panel-end-input")?.value || sStart;
+                saveDetailRating(selectedRating || 8, sNum, sStart, sEnd);
+            });
+        });
 
         if (ratingBar) {
             ratingBar.querySelectorAll(".detail-rate-btn").forEach((btn) => {

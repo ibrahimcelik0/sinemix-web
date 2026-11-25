@@ -102,6 +102,62 @@
                                             {% endfor %}
                                         </div>
 
+                                        {% if item.media_type == 'movie' %}
+                                            <!-- Filmler İçin: Başlama & Bitiş Tarih Aralığı (Örn: 25–26 Kasım 2026) -->
+                                            <div class="watched-date-picker-wrap movie-range-picker-wrap" title="Filmi İzlediğiniz Tarih Aralığı (2020 - 2026)">
+                                                <span class="watched-date-label">🎬 İzleme Aralığı:</span>
+                                                <input type="date"
+                                                       id="detailWatchStartDateInput"
+                                                       class="watched-date-input"
+                                                       min="2020-01-01"
+                                                       max="2026-12-31"
+                                                       value="{{ item.watch_start_date }}"
+                                                       aria-label="Film İzlemeye Başlama Tarihi">
+                                                <span class="date-range-arrow">→</span>
+                                                <input type="date"
+                                                       id="detailWatchEndDateInput"
+                                                       class="watched-date-input"
+                                                       min="2020-01-01"
+                                                       max="2026-12-31"
+                                                       value="{{ item.watch_end_date }}"
+                                                       aria-label="Filmi Bitirme Tarihi">
+                                                <span id="detailWatchedRangeBadge" class="watched-range-pretty-pill">
+                                                    📅 {{ item.watched_date_label }}
+                                                </span>
+                                            </div>
+                                        {% else %}
+                                            <!-- Diziler İçin: Sezon Bazlı Başlama & Bitiş Tarihleri -->
+                                            <div class="watched-date-picker-wrap tv-season-range-picker-wrap" title="Sezon Başlama ve Bitiş Tarihlerini Seçin">
+                                                <span class="watched-date-label">📺 Sezon Tarihi:</span>
+                                                <select id="detailSeasonNumberSelect" class="watched-season-select" aria-label="Sezon Seç">
+                                                    {% for s_num in range(1, (item.number_of_seasons or 1) + 1) %}
+                                                        {% set s_data = item.season_watch_map.get(s_num) if item.season_watch_map else None %}
+                                                        <option value="{{ s_num }}"
+                                                                data-start="{{ s_data.start_date if s_data else item.watch_start_date }}"
+                                                                data-end="{{ s_data.end_date if s_data else item.watch_end_date }}">
+                                                            {{ s_num }}. Sezon
+                                                        </option>
+                                                    {% endfor %}
+                                                </select>
+                                                <span class="season-date-sub-lbl">Başlama:</span>
+                                                <input type="date"
+                                                       id="detailWatchStartDateInput"
+                                                       class="watched-date-input"
+                                                       min="2020-01-01"
+                                                       max="2026-12-31"
+                                                       value="{{ item.season_watch_dates[0].start_date if item.season_watch_dates else item.watch_start_date }}"
+                                                       aria-label="Sezona Başlama Tarihi">
+                                                <span class="season-date-sub-lbl">Bitiş:</span>
+                                                <input type="date"
+                                                       id="detailWatchEndDateInput"
+                                                       class="watched-date-input"
+                                                       min="2020-01-01"
+                                                       max="2026-12-31"
+                                                       value="{{ item.season_watch_dates[0].end_date if item.season_watch_dates else item.watch_end_date }}"
+                                                       aria-label="Sezonu Bitirme Tarihi">
+                                            </div>
+                                        {% endif %}
+
                                         <button type="button"
                                                 id="detailSaveWatchlistBtn"
                                                 class="btn-gold-action detail-watch-confirm-btn {{ 'is-watched-confirmed' if item.in_watchlist else '' }}">
@@ -119,6 +175,14 @@
                                             🗑️ Listeden Çıkar
                                         </button>
                                     </div>
+
+                                    {% if item.media_type == 'tv' %}
+                                        <div id="detailSeasonDatesPillsRow" class="season-dates-pills-row" {{ '' if item.season_watch_dates else 'hidden' }}>
+                                            {% for s_entry in item.season_watch_dates %}
+                                                <span class="season-date-chip">📺 {{ s_entry.label }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
                                 </div>
 
                                 <!-- Tüm Film ve Dizi Sayfalarında Sabit Standart Fragman & Yorum Butonları -->
@@ -291,9 +355,40 @@
                     <!-- Seçilen Sezona Ait Bölümler Listesi -->
                     <div class="tv-seasons-panels-wrap" id="tvSeasonsPanelsWrap">
                         {% for season in item.seasons %}
+                            {% set s_saved = item.season_watch_map.get(season.season_number) if item.season_watch_map else None %}
                             <div class="tv-season-panel"
                                  data-season-panel="{{ season.season_number }}"
                                  {{ '' if loop.first else 'hidden' }}>
+
+                                <!-- Bu Sezona Özel Başlama ve Bitiş Tarihi Satırı -->
+                                <div class="tv-season-date-banner" data-season-date-bar="{{ season.season_number }}">
+                                    <div class="tv-season-date-left">
+                                        <span class="tv-season-date-title">📅 {{ season.season_number }}. Sezon İzleme Tarihleri:</span>
+                                        <span class="season-date-chip" data-season-label-chip="{{ season.season_number }}">
+                                            {{ s_saved.label if s_saved else (season.season_number ~ '. Sezon: Henüz tarih kaydedilmedi') }}
+                                        </span>
+                                    </div>
+                                    <div class="tv-season-date-controls">
+                                        <label class="season-date-sub-lbl">Başlama:</label>
+                                        <input type="date"
+                                               class="watched-date-input season-panel-start-input"
+                                               min="2020-01-01"
+                                               max="2026-12-31"
+                                               value="{{ s_saved.start_date if s_saved else item.watch_start_date }}">
+                                        <label class="season-date-sub-lbl">Bitiş:</label>
+                                        <input type="date"
+                                               class="watched-date-input season-panel-end-input"
+                                               min="2020-01-01"
+                                               max="2026-12-31"
+                                               value="{{ s_saved.end_date if s_saved else item.watch_end_date }}">
+                                        <button type="button"
+                                                class="btn-save-season-dates"
+                                                data-save-season-num="{{ season.season_number }}">
+                                            💾 {{ season.season_number }}. Sezon Tarihini Kaydet
+                                        </button>
+                                    </div>
+                                </div>
+
                                 {% for ep in season.episodes %}
                                     <article class="tv-episode-card"
                                              data-season-num="{{ ep.season_number }}"

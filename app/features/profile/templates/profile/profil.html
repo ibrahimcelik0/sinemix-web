@@ -15,7 +15,7 @@
          data-server-episodes="{{ metrics.watched_episodes_count }}">
 
         <div class="profile-glass-dashboard">
-            <!-- 1. Kullanıcı Kimlik Kartı -->
+            <!-- 1. Kullanıcı Kimlik Kartı (ID ve Dosya Yolu Gizli) -->
             <div class="profile-header-card">
                 <div class="profile-avatar-large">{{ kullanici.avatar_initial }}</div>
 
@@ -48,7 +48,7 @@
                 </div>
             </div>
 
-            <!-- 2. İzleme İstatistikleri (Film, Dizi & Bölüm, Ortalama Puan, Evren Rozeti) -->
+            <!-- 2. Genel İzleme Özeti -->
             <section class="profile-summary-card">
                 <div class="stats-counters profile-metrics-grid">
                     <div class="stat-item">
@@ -73,33 +73,153 @@
                         <span class="stat-lbl">🌌 Sinema Evreni Rozeti ({{ metrics.active_universes_count }} Aktif)</span>
                     </div>
                 </div>
-
-                {% if profile.favorite_genres or profile.favorite_keywords %}
-                    <div class="taste-profile-bars">
-                        <div class="taste-group">
-                            <span class="taste-title">Favori Tür Ağırlıkların:</span>
-                            <div class="taste-chips">
-                                {% for g in profile.favorite_genres %}
-                                    <span class="taste-chip positive">{{ g.name }} <small>+{{ g.weight }}</small></span>
-                                {% endfor %}
-                                {% for g in profile.disliked_genres %}
-                                    <span class="taste-chip negative">{{ g.name }} <small>{{ g.weight }}</small></span>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        <div class="taste-group">
-                            <span class="taste-title">Öne Çıkan Temaların:</span>
-                            <div class="taste-chips">
-                                {% for kw in profile.favorite_keywords[:8] %}
-                                    <span class="taste-chip keyword">#{{ kw.name }} <small>+{{ kw.weight }}</small></span>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
             </section>
 
-            <!-- 3. Tamamlanan & İlerlenen Sinema Evrenleri Rozetleri -->
+            <!-- 3. 2026–2020 Yıllık İzleme İstatistikleri Paneli (Varsayılan Seçili Yıl: 2026) -->
+            <section class="profile-yearly-stats-section" id="yearlyStatsSection">
+                <div class="profile-section-header">
+                    <div>
+                        <h2 class="detail-section-title" style="margin-bottom: 4px;">
+                            📊 Yıllık İzleme İstatistikleri (2026 – 2020)
+                        </h2>
+                        <p class="tv-seasons-subtitle">
+                            İzlenme tarihine göre yıllara yayılan film, dizi, toplam süre, favori tür ve aylık aktivite dağılımın.
+                        </p>
+                    </div>
+
+                    <!-- Yıl Sekmeleri: 2026, 2025, 2024, 2023, 2022, 2021, 2020, Tüm Zamanlar -->
+                    <div class="yearly-stats-tabs" id="yearlyStatsTabs" role="tablist" aria-label="Yıllık İstatistik Yıl Seçici">
+                        {% for y_tab in yearly_stats.tabs %}
+                            <button type="button"
+                                    class="yearly-tab-btn {{ 'active' if y_tab.year_key == selected_year else '' }}"
+                                    data-year-tab="{{ y_tab.year_key }}"
+                                    role="tab"
+                                    aria-selected="{{ 'true' if y_tab.year_key == selected_year else 'false' }}">
+                                <span>{{ y_tab.label }}</span>
+                                {% if y_tab.total_count > 0 %}
+                                    <span class="yearly-tab-count">{{ y_tab.total_count }}</span>
+                                {% endif %}
+                            </button>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Her Yıla Ait İstatistik Panelleri -->
+                <div class="yearly-panels-container" id="yearlyPanelsContainer">
+                    {% for y_stat in yearly_stats.tabs %}
+                        <div class="yearly-stat-panel"
+                             data-year-panel="{{ y_stat.year_key }}"
+                             {{ '' if y_stat.year_key == selected_year else 'hidden' }}>
+
+                            {% if y_stat.has_data %}
+                                <!-- 3.A Yıllık Özet Metrik Kartları -->
+                                <div class="yearly-kpi-grid">
+                                    <div class="yearly-kpi-card">
+                                        <span class="yearly-kpi-label">🎬 İzlenen Film & Dizi</span>
+                                        <strong class="yearly-kpi-value">
+                                            {{ y_stat.movie_count }} Film • {{ y_stat.tv_count }} Dizi
+                                        </strong>
+                                        <span class="yearly-kpi-sub">
+                                            Toplam {{ y_stat.episode_count }} dizi bölümü tamamlandı
+                                        </span>
+                                    </div>
+
+                                    <div class="yearly-kpi-card">
+                                        <span class="yearly-kpi-label">⏱️ Toplam İzleme Süresi</span>
+                                        <strong class="yearly-kpi-value gold-text">
+                                            {{ y_stat.watch_time_label }}
+                                        </strong>
+                                        <span class="yearly-kpi-sub">
+                                            Toplam {{ y_stat.total_minutes }} dakika ekran süresi
+                                        </span>
+                                    </div>
+
+                                    <div class="yearly-kpi-card">
+                                        <span class="yearly-kpi-label">⭐ Puan Ortalaması</span>
+                                        <strong class="yearly-kpi-value gold-text">
+                                            ⭐ {{ y_stat.avg_rating }} / 10
+                                        </strong>
+                                        <span class="yearly-kpi-sub">
+                                            {{ y_stat.total_count }} puanlanan yapım ortalaması
+                                        </span>
+                                    </div>
+
+                                    <div class="yearly-kpi-card favorite-kpi-card">
+                                        <span class="yearly-kpi-label">🏆 {{ 'Tüm Zamanların' if y_stat.year_key == 'all' else (y_stat.label ~ ' Yılının') }} Favori Yapımı</span>
+                                        {% if y_stat.favorite_item %}
+                                            <a href="{{ url_for('catalog.detail', media_type=y_stat.favorite_item.media_type, tmdb_id=y_stat.favorite_item.tmdb_id) }}"
+                                               class="yearly-fav-link">
+                                                <strong>{{ y_stat.favorite_item.title }}</strong>
+                                                <span class="yearly-fav-score">⭐ {{ y_stat.favorite_item.user_rating }}/10</span>
+                                            </a>
+                                            <span class="yearly-kpi-sub">📅 {{ y_stat.favorite_item.watched_date_label or y_stat.favorite_item.watched_at }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- 3.B En Çok İzlenen 3 Tür (Top 3 Genre) & 12 Aylık İzleme Aktivitesi Bar Grafiği -->
+                                <div class="yearly-charts-grid">
+                                    <!-- Sol: En Çok İzlenen Türler (Top 3 Genre) -->
+                                    <div class="yearly-chart-card">
+                                        <h3 class="yearly-chart-title">🎭 En Çok İzlenen Türler (Top 3)</h3>
+                                        {% if y_stat.top_genres %}
+                                            <div class="top-genres-bars-list">
+                                                {% for g in y_stat.top_genres %}
+                                                    <div class="top-genre-bar-item">
+                                                        <div class="top-genre-bar-header">
+                                                            <span class="top-genre-name">{{ loop.index }}. {{ g.name }}</span>
+                                                            <span class="top-genre-meta">{{ g.count }} yapım • <strong>%{{ g.percent }}</strong></span>
+                                                        </div>
+                                                        <div class="top-genre-progress-track">
+                                                            <div class="top-genre-progress-fill" style="width: {{ g.percent }}%;"></div>
+                                                        </div>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        {% else %}
+                                            <p class="tv-seasons-subtitle">Tür dağılımı verisi bulunmuyor.</p>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Sağ: 12 Aylık İzleme Aktivitesi (Ocak–Aralık CSS/HTML Bar Grafiği) -->
+                                    <div class="yearly-chart-card">
+                                        <h3 class="yearly-chart-title">📅 Aylık İzleme Aktivitesi (Ocak – Aralık)</h3>
+                                        <div class="monthly-activity-bars" role="img" aria-label="{{ y_stat.label }} Aylık İzleme Aktivitesi Grafiği">
+                                            {% for m in y_stat.monthly_activity %}
+                                                <div class="monthly-bar-col" title="{{ m.full_name }}: {{ m.count }} yapım">
+                                                    <span class="monthly-bar-count {{ 'has-items' if m.count > 0 else '' }}">
+                                                        {{ m.count if m.count > 0 else '' }}
+                                                    </span>
+                                                    <div class="monthly-bar-track">
+                                                        <div class="monthly-bar-fill {{ 'is-active' if m.count > 0 else '' }}"
+                                                             style="height: {{ m.height_pct }}%;"></div>
+                                                    </div>
+                                                    <span class="monthly-bar-label">{{ m.short_name }}</span>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <!-- Henüz Veri Girilmemiş Yıl İçin Boş Durum Mesajı -->
+                                <div class="yearly-empty-state-box">
+                                    <div class="empty-icon">📅</div>
+                                    <h3>Bu yıl için henüz izleme kaydı bulunmuyor</h3>
+                                    <p>
+                                        <strong>{{ y_stat.label }}</strong> yılında izlediğin film veya dizileri puanlarken
+                                        <em>"📅 İzlenme Tarihi"</em> alanından {{ y_stat.label }} tarihini seçerek bu yılın istatistiklerini oluşturabilirsin.
+                                    </p>
+                                    <a href="{{ url_for('catalog.discover') }}" class="btn-gold-action">
+                                        🔍 Keşfet'ten Yapım Ekle
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- 4. Tamamlanan & İlerlenen Sinema Evrenleri Rozetleri -->
             <section class="profile-universes-section">
                 <div class="profile-section-header">
                     <div>
@@ -146,7 +266,7 @@
                 </div>
             </section>
 
-            <!-- 4. Son İzlenen & Puanlanan Yapımlar -->
+            <!-- 5. Son İzlenen & Puanlanan Yapımlar -->
             {% if recent_items %}
                 <section class="profile-recent-section">
                     <div class="profile-section-header">
@@ -173,7 +293,8 @@
                                 </div>
                                 <div class="similar-card-info">
                                     <div class="similar-meta">
-                                        <span class="sim-rating">⭐ Puanın: {{ item.user_rating }}/10</span>
+                                        <span class="sim-rating">⭐ {{ item.user_rating }}/10</span>
+                                        <span class="sim-year">📅 {{ item.watched_date_label or item.watched_at }}</span>
                                     </div>
                                     <h4 class="similar-title">{{ item.title }}</h4>
                                 </div>
@@ -191,29 +312,52 @@
 document.addEventListener("DOMContentLoaded", () => {
     const container = document.getElementById("userProfilePageContainer");
     const epCountEl = document.getElementById("profileWatchedEpisodesCount");
-    if (!container || !epCountEl) return;
 
-    const username = (container.dataset.username || "").trim();
-    const serverEpisodes = parseInt(container.dataset.serverEpisodes || "0", 10);
-    if (!username) return;
-
-    // Dizi detay sayfalarında işaretlenen bireysel bölümleri (localStorage) kontrol et
-    const prefix = `sinemix_tv_eps_${username}_`;
-    let localMarkedEpisodes = 0;
-    try {
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith(prefix)) {
-                const arr = JSON.parse(localStorage.getItem(key) || "[]");
-                if (Array.isArray(arr)) {
-                    localMarkedEpisodes += arr.length;
+    if (container && epCountEl) {
+        const username = (container.dataset.username || "").trim();
+        const serverEpisodes = parseInt(container.dataset.serverEpisodes || "0", 10);
+        if (username) {
+            const prefix = `sinemix_tv_eps_${username}_`;
+            let localMarkedEpisodes = 0;
+            try {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith(prefix)) {
+                        const arr = JSON.parse(localStorage.getItem(key) || "[]");
+                        if (Array.isArray(arr)) {
+                            localMarkedEpisodes += arr.length;
+                        }
+                    }
                 }
+            } catch (_) {}
+
+            if (localMarkedEpisodes > serverEpisodes) {
+                epCountEl.textContent = String(localMarkedEpisodes);
             }
         }
-    } catch (_) {}
+    }
 
-    if (localMarkedEpisodes > serverEpisodes) {
-        epCountEl.textContent = String(localMarkedEpisodes);
+    // 2026–2020 + Tüm Zamanlar Yıl Sekmeleri Geçişi
+    const yearlyTabsContainer = document.getElementById("yearlyStatsTabs");
+    const yearlyPanelsContainer = document.getElementById("yearlyPanelsContainer");
+
+    if (yearlyTabsContainer && yearlyPanelsContainer) {
+        yearlyTabsContainer.addEventListener("click", (e) => {
+            const tabBtn = e.target.closest(".yearly-tab-btn");
+            if (!tabBtn) return;
+
+            const targetYear = tabBtn.dataset.yearTab || "2026";
+
+            yearlyTabsContainer.querySelectorAll(".yearly-tab-btn").forEach((btn) => {
+                const isActive = btn === tabBtn;
+                btn.classList.toggle("active", isActive);
+                btn.setAttribute("aria-selected", isActive ? "true" : "false");
+            });
+
+            yearlyPanelsContainer.querySelectorAll(".yearly-stat-panel").forEach((panel) => {
+                panel.hidden = panel.dataset.yearPanel !== targetYear;
+            });
+        });
     }
 });
 </script>
